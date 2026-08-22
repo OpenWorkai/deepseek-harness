@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/testing/2026-08-22-opendesign-readonly-baseline-evidence.md
+2026-08-22-opendesign-readonly-baseline-evidence.md: 0df3040c2c52ddbd0c0c065d85febce8b4cc04f7
+2026-08-22-opendesign-readonly-baseline-evidence.zh.md: cf50766fd8de6eeb68637f2f1bbbf2e0aab76904

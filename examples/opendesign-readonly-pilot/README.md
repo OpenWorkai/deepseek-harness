@@ -1,30 +1,32 @@
-# OpenWork → OpenDesign × DSH 只读试点
+# OpenWork → OpenDesign × DSH Read-only Pilot
 
-> Phase 0 决策：**HOLD**。P0-08 的服务端与 DSH 桥接已完成；P0-05 真实 OpenWork 旧路径基线、P0-07 owner 批准的隐私白名单及数值阈值仍未完成。
+English | [中文](README.zh.md)
+
+> Phase 0 decision: **HOLD**. The real same-source P0-05 comparison and the P0-08 DSH bridge are complete; P0-03/04 owner boundary approval, P0-07 privacy approval, and sign-off on the §7 candidate thresholds remain outstanding.
 >
-> 当前证据对象和运行契约均为 OpenWork → OpenDesign design-systems。Jiwo / Arkme 只保留为迁移方向旁证。
+> The evidence target and runtime contract are now OpenWork → OpenDesign design-systems. Jiwo / Arkme remain only as supporting evidence for the migration direction.
 
-本试点通过 `dsh-mcp-client` 把本机 OpenDesign HTTP API 暴露为两个只读 MCP 工具。OpenDesign 和它的 `OD_DATA_DIR` 仍是唯一事实源；适配器不保存业务数据、不复制数据库、不暴露写工具。
+This pilot exposes the local OpenDesign HTTP API as two read-only MCP tools through `dsh-mcp-client`. OpenDesign and its `OD_DATA_DIR` remain the source of truth; the adapter does not persist business data, copy the database, or expose write tools.
 
-## 已批准的契约
+## Approved Contract
 
-| 工具 | 输入 | 输出 | 边界 |
+| Tool | Input | Output | Boundary |
 |---|---|---|---|
-| `opendesign_list_design_systems` | 无 | 设计系统摘要数组 | 强制剔除 `body`、`provenance`、`projectId` 和未知字段 |
-| `opendesign_get_design_system` | `id: string` | 单个设计系统，可含 `body` | 剔除 `provenance`、`projectId` 和未知字段 |
+| `opendesign_list_design_systems` | None | Array of design-system summaries | Always removes `body`, `provenance`, `projectId`, and unknown fields |
+| `opendesign_get_design_system` | `id: string` | One design system, optionally including `body` | Removes `provenance`, `projectId`, and unknown fields |
 
-两个工具均标记为 `readOnlyHint:true`、`destructiveHint:false`。当前最小字段白名单为：
+Both tools declare `readOnlyHint:true` and `destructiveHint:false`. The current minimum field allowlist is:
 
-- list/get：`id`、`title`、`summary`、`category`、`swatches`、`surface`、`source`、`status`、`isEditable`、`createdAt`、`updatedAt`
-- get 额外允许：`body`
+- list/get: `id`, `title`, `summary`, `category`, `swatches`, `surface`, `source`, `status`, `isEditable`, `createdAt`, `updatedAt`
+- get additionally allows: `body`
 
-该白名单是 P0-08 的最小实现，不代表 P0-07 已批准。隐私 / 安全 owner 未签字前，不得扩大字段。
+This allowlist is the minimum P0-08 implementation; it is not evidence that P0-07 has been approved. Fields must not be expanded until the privacy / security owner signs off.
 
-适配器会显式分类 `INVALID_INPUT`、`UNAUTHORIZED`、`FORBIDDEN`、`NOT_FOUND`、`RATE_LIMITED`、`UPSTREAM_ERROR`、`UPSTREAM_TIMEOUT`、`UPSTREAM_UNAVAILABLE` 和 `SCHEMA_INCOMPATIBLE`。失败通过 MCP `isError:true` 返回，不允许静默退化为空工具集。
+The adapter explicitly classifies `INVALID_INPUT`, `UNAUTHORIZED`, `FORBIDDEN`, `NOT_FOUND`, `RATE_LIMITED`, `UPSTREAM_ERROR`, `UPSTREAM_TIMEOUT`, `UPSTREAM_UNAVAILABLE`, and `SCHEMA_INCOMPATIBLE`. Failures return MCP `isError:true`; silently degrading to an empty tool set is prohibited.
 
-## 运行真实只读路径
+## Run the Real Read-only Path
 
-先启动固定版本的 OpenDesign daemon：
+Start the pinned OpenDesign daemon first:
 
 ```sh
 cd <open-design-repo>
@@ -32,31 +34,31 @@ OD_DATA_DIR=<controlled-data-dir> \
   node apps/daemon/dist/cli.js --host 127.0.0.1 --port 7456 --no-open
 ```
 
-再从 DeepSeek Harness 仓库根目录启动 DSH：
+Then start DSH from the DeepSeek Harness repository root:
 
 ```sh
 OPENDESIGN_BASE_URL=http://127.0.0.1:7456 \
   pnpm dsh web --patch "$PWD/examples/opendesign-readonly-pilot/opendesign-readonly-pilot.cordis.yml"
 ```
 
-模型侧只能发现：
+The model can discover only:
 
 - `mcp__opendesign__opendesign_list_design_systems`
 - `mcp__opendesign__opendesign_get_design_system`
 
-`OPENDESIGN_BASE_URL` 只接受 loopback `http:` 地址。`failOnStartupError:true` 保证适配器启动或同步失败时 DSH 明确失败，而不是“启动成功但没有工具”。
+`OPENDESIGN_BASE_URL` accepts only loopback `http:` addresses. `failOnStartupError:true` ensures that adapter startup or synchronization failure makes DSH fail explicitly instead of appearing healthy with no tools.
 
-## 验证
+## Verification
 
-契约与真实 DSH 桥接测试：
+Contract and real DSH bridge tests:
 
 ```sh
 pnpm exec vitest run --config examples/opendesign-readonly-pilot/vitest.config.mjs
 ```
 
-当前覆盖：精确工具清单、list/get 字段白名单、写工具不可用、七类上游故障、真实 `dsh-mcp-client` 发现与执行、overlay 配置。
+Current coverage includes the exact tool inventory, list/get field allowlists, write-tool absence, seven upstream failure classes, real `dsh-mcp-client` discovery and execution, and the overlay configuration.
 
-对已运行的真实 OpenDesign daemon 采集 DSH 路径样本：
+Collect DSH-path samples against a running real OpenDesign daemon:
 
 ```sh
 OPENDESIGN_BASE_URL=http://127.0.0.1:7456 \
@@ -64,46 +66,50 @@ OPENDESIGN_BASE_URL=http://127.0.0.1:7456 \
   --lists 100 --gets 200 --concurrency 50 --warmup 5 --json
 ```
 
-采集器还会验证适配器重启后的首读。它**不测** OpenWork renderer / IPC、CPU / RSS 或完整旧路径，因此输出只能作为 P0-08 的 DSH 集成证据，不能冻结 P0-05 性能阈值。受控实测记录见 [`evidence/opendesign-dsh-readonly-e2e.md`](evidence/opendesign-dsh-readonly-e2e.md)。
+This single-path command is a quick adapter check. The complete P0-05 run uses [`server/p0-05-collect.mjs`](server/p0-05-collect.mjs) to execute the real OpenWork renderer → IPC path, the DSH MCP path, and the legacy-path fallback after DSH stops. See the controlled [`P0-05 comparison evidence`](evidence/opendesign-p0-05-comparison.md).
 
-## 回滚
+## Rollback
 
-1. 停止带 overlay 的 DSH，或从启动命令移除 `opendesign-readonly-pilot.cordis.yml`。
-2. OpenWork 原生 IPC 路径继续读取同一个 OpenDesign daemon / `OD_DATA_DIR`。
-3. 本试点没有 schema 变更、业务数据副本或写入，因此无需反向数据迁移。
+1. Stop DSH with the overlay, or remove `opendesign-readonly-pilot.cordis.yml` from the launch command.
+2. The native OpenWork IPC path continues reading the same OpenDesign daemon / `OD_DATA_DIR`.
+3. This pilot has no schema changes, business-data copies, or writes, so no reverse data migration is required.
 
-这证明的是 overlay 的可撤销性。OpenWork 原生 UI 的人工回退演练仍属于 P0-05 / 放行验收。
+P0-05 automatically verified that the legacy IPC path can list/get from the same `OD_DATA_DIR` after the DSH path stops. The manual traffic-switch drill after production Host integration remains a Phase 1 acceptance item.
 
-## 客户端脚手架
+## Client Scaffold
 
-`client/` 是尚未接入宿主构建的 Host + browser 草案：
+`client/` is a Host + browser draft that is not wired into the production build:
 
-- `src/events.ts`：`opendesign/list`、`opendesign/get` 回放事件
-- `src/cache/opendesign-cache.ts`：可丢弃的本地回放缓存，非事实源
-- `src/index.ts`：Host 缓存生命周期和 `opendesign-pilot` 设置命名空间
-- `src/client/index.ts`：只读设置卡与 `opendesign-result` 回放节点
-- `tsconfig.host.json` / `tsconfig.client.json`：分别校验 Host 与 browser 入口
-- `tsconfig.json`：组合上述两个独立类型检查；不会把该包接入宿主构建
+- `src/events.ts`: `opendesign/list` and `opendesign/get` replay events
+- `src/cache/opendesign-cache.ts`: disposable local replay cache, not a source of truth
+- `src/index.ts`: Host cache lifecycle and the `opendesign-pilot` settings namespace
+- `src/client/index.ts`: read-only settings card and `opendesign-result` replay node
+- `tsconfig.host.json` / `tsconfig.client.json`: validate the Host and browser entry points separately
+- `tsconfig.json`: combines the two independent type checks without wiring this package into the Host build
 
-它没有 write 事件或写入 UI。该目录已作为依赖解析与独立类型检查的 workspace 成员，Host / browser 类型均受检；仍未加入生产 Host / web 构建与 Cordis 组合，实际事件生产、UI 回放和升级兼容仍需集成验证。
+It has no write events or write UI. The directory is a workspace member for dependency resolution and independent type checking, so both Host and browser types are checked. It is still not integrated into the production Host / web build or Cordis composition; actual event production, UI replay, and upgrade compatibility remain integration work.
 
 ```sh
 pnpm exec tsc -b examples/opendesign-readonly-pilot/client/tsconfig.json
 ```
 
-## 文件地图
+## File Map
 
 ```text
 examples/opendesign-readonly-pilot/
 ├── PHASE0.md
 ├── README.md
+├── README.zh.md
 ├── opendesign-readonly-pilot.cordis.yml
 ├── vitest.config.mjs
 ├── evidence/
-│   └── opendesign-dsh-readonly-e2e.md
+│   ├── opendesign-dsh-readonly-e2e.md
+│   ├── opendesign-p0-05-comparison.md
+│   └── opendesign-p0-07-owner-review.md
 ├── server/
 │   ├── opendesign-readonly-server.mjs
 │   ├── baseline-harness.mjs
+│   ├── p0-05-collect.mjs
 │   └── tests/opendesign.contract.test.mjs
 └── client/
     ├── package.json
@@ -117,12 +123,11 @@ examples/opendesign-readonly-pilot/
         └── client/index.ts
 ```
 
-## 仍阻塞只读 GO
+## Remaining Read-only GO Blockers
 
-- P0-01：补正式仓库 URL、启动责任人和 owner 签字
-- P0-03 / P0-04：数据保留 / 删除与本机权限边界确认
-- P0-05：真实 OpenWork 原生 IPC 与 DSH 试点路径的同条件对照基线
-- P0-07：字段白名单、日志禁入字段和遮蔽规则获 owner 批准
-- §7：按真实旧路径结果冻结成功率、延迟、并发、资源和恢复阈值
+- P0-01: record the formal startup owner and owner sign-off
+- P0-03 / P0-04: obtain owner sign-off on data retention / deletion and the local authorization boundary
+- P0-07: obtain owner approval for the field allowlist, log-deny fields, and masking rules
+- §7: freeze the populated candidate thresholds for success rate, latency, concurrency, resources, and recovery
 
-写入 `opendesign_create_design_system` 不属于本次 GO。没有可信批准、请求幂等、审计与补偿证据前，不得添加。
+The `opendesign_create_design_system` write operation is outside this GO decision. Do not add it without credible approval plus evidence for request idempotency, auditability, and compensation.

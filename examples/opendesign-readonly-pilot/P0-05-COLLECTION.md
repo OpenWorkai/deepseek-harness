@@ -47,4 +47,4 @@ P0-05 在同一台机器、同一个 `OD_DATA_DIR` 和同一个黄金对象上�
 - DSH 路径停止后，OpenWork 原生 IPC 再次读取同一 `OD_DATA_DIR` 成功。
 - 报告中不存在写工具调用或业务数据副本。
 
-P0-05 通过后仍维持 HOLD，直到 P0-07 获 owner 批准且 `PHASE0.md` §7 的全部 `PENDING` 数值由 owner 冻结。
+P0-05 通过后仍维持 HOLD，直到 P0-07 获 owner 批准且 `PHASE0.md` §7 的全部候选数值由 owner 冻结。
