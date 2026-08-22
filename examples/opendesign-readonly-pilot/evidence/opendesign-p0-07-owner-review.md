@@ -1,6 +1,8 @@
 # P0-07 隐私与上下文白名单审批单
 
 > 状态：**待 owner 签署**。这是把 P0-07 从开放问题压缩为批准 / 驳回的一页式输入，不代表已获批准。
+>
+> P0-01、P0-03/04、P0-07 与 §7 的统一签署入口见 [`opendesign-readonly-go-decision.md`](opendesign-readonly-go-decision.md)。
 
 ## 适用范围
 

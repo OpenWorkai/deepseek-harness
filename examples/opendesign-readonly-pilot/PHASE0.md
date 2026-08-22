@@ -9,6 +9,8 @@
 > 固定版本：OpenWork `9e774879`、OpenDesign `0c7955de`（v0.11.1）、DeepSeek Harness `89b38861`；P0-05 / P0-08 实现位于当前 PR。
 >
 > 证据截止：2026-08-22。
+>
+> Owner 统一签署入口：[`evidence/opendesign-readonly-go-decision.md`](evidence/opendesign-readonly-go-decision.md)。签署完成前本文件保持 HOLD。
 
 ## 1. Phase 0 要回答的问题
 
@@ -206,18 +208,19 @@ arkme-senx/arkme-dsh-plugin @8d62319 与 Arkme 0.1.1 桌面发布包静态验真
 | [client 脚手架](client/) | 已重对齐 `opendesign/list` / `opendesign/get`，仅有回放缓存和只读 UI，无 write 事件；Host / browser 独立类型检查通过 | 尚未接入生产宿主构建；实际事件生产、UI 重放、权限展示与升级兼容仍未验证 |
 | [受控 P0-05 对照证据](evidence/opendesign-p0-05-comparison.md) | 13 项比较检查全部通过；同源字段一致、两侧 20/20、20 并发、恢复、错误分类与回退均成功 | 单机小样本不能单独承诺生产容量；资源采样范围不同 |
 | [P0-07 owner 审批单](evidence/opendesign-p0-07-owner-review.md) | 把字段、日志和持久化选择压缩为可签署清单 | 尚未签署 |
+| [只读 GO 决策单](evidence/opendesign-readonly-go-decision.md) | 汇总 P0-01、P0-03/04、P0-07 与 §7 的 owner 批准和最终决议 | 尚未签署；当前 HOLD |
 
 因此，P0-05 / P0-08 完成仍不能改写为“Phase 0 通过”。只有 owner 边界确认、P0-07 审批与 §7 候选阈值冻结完成后，才可评审只读 GO。
 
 ## 9. 最短收尾顺序
 
-1. 指定 OpenWork / OpenDesign / 数据 / 安全 / 运维 owner（P0-01）。
-2. 固化数据目录、删除 / 保留规则和黄金测试数据（P0-03）。
-3. 由身份 / 安全 owner 确认仅本机单用户 + loopback 权限边界（P0-04）。
+1. 在 [`只读 GO 决策单`](evidence/opendesign-readonly-go-decision.md) 指定 OpenWork / OpenDesign / DSH / 数据 / 安全 / 运维 owner（P0-01）。
+2. 在决策单固化黄金测试数据保留期限与删除责任人（P0-03）。
+3. 由身份 / 安全 owner 在决策单确认仅本机单用户 + loopback 权限范围（P0-04）。
 4. ~~用同一 `OD_DATA_DIR` 跑真实 OpenWork IPC 与 DSH 对照、回退和资源采样（P0-05）。~~ 已完成。
-5. owner 签署 [`P0-07 审批单`](evidence/opendesign-p0-07-owner-review.md)。
-6. owner 冻结 §7 候选数字，并决定是否接受 adapter-only 资源边界或补生产采样。
-7. 评审 → 只读 GO 或继续 HOLD。
+5. owner 通过决策单签署 [`P0-07 审批单`](evidence/opendesign-p0-07-owner-review.md) 的选择。
+6. owner 在决策单冻结 §7 候选数字，并决定是否接受 adapter-only 资源范围或补生产采样。
+7. 最终决策 owner 签署后，评审 → 只读 GO、继续 HOLD 或 NO-GO。
 
 ## 10. 决策记录
 
