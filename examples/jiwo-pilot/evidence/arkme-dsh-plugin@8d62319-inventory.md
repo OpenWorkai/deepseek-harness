@@ -51,7 +51,7 @@
 | `arkme_record_images` | 读 | — | 纯图片库 |
 | `arkme_record_create` | 写（`effect:'write'`，`grant:'explicit-user-write'`） | `text`（必填） | 写入默认分类；先本地缓存再远端同步；返回 `localState: synced/failed` |
 
-**切片对齐关键发现**：真实“记录（record）”是**文本快记**（`record_core` 含 `record_uid`/`title`/`text_content`/`template_kind`/`display_kind`/`version`/`send_at`/`update_at`/`owner_user_id`/`creator_user_id`）。`src/tools/business/records/` **未见对外暴露的“标签写入”工具**。试点 `jiwo_write_tag` 必须对齐——要么改用 `arkme_record_create`（追加快记），要么确认标签是另一实体（待 P0-02/P0-03 澄清）。
+**切片对齐关键发现**：真实“记录（record）”是**文本快记**（`record_core` 含 `record_uid`/`title`/`text_content`/`template_kind`/`display_kind`/`version`/`send_at`/`update_at`/`owner_user_id`/`creator_user_id`）。`src/tools/business/records/` **未见对外暴露的“标签写入”工具**。试点服务端桩、基线采集器及契约测试现已改用 `arkme_record_create`；未接入构建的 `client/` 事件草案仍需另行对齐。
 
 ## 4. 真实写入确认模型（src/tools/shared/conversational-confirmation.ts）
 
@@ -91,6 +91,11 @@
 ## 7. 安全旋钮汇总
 
 `allowNonLoopback:false`（仅环回）、`extensionTrustedSigningKeys`（ed25519 扩展验签）、`geetestCaptchaId`、`maxTextLength:20000`、`maxUploadBytes:104857600`、`toolProfile:business`、`environment:prod`、`updateCheckEnabled:true`。
+
+更新来源需要区分两类约束：
+
+- `plugin-update-state.ts` 中 `github.com` / `arkme.ai` / `www.arkme.ai` 只用于过滤**插件更新说明链接**，不能证明桌面安装包来源。
+- `cordis.patch.yml` 的生产 `updateArtifactBaseUrl` 明确为 `https://d.jiwo.cc`；这才是固定提交声明的插件制品源。迁移后桌面 DMG 的独立来源与 Apple 签名验真见 [`arkme-desktop-0.1.1-provenance.md`](arkme-desktop-0.1.1-provenance.md)。
 
 ## 8. 对 P0 台账的支撑映射
 

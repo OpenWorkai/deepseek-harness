@@ -1,6 +1,6 @@
 // jiwo.contract.test.mjs
 // ---------------------------------------------------------------------------
-// Contract + rollback tests for the stub Jiwo MCP backend (Phase 1 acceptance
+// Contract + rollback tests for the stub Jiwo/MCP backend (Phase 1 acceptance
 // gates from MIGRATION_JIWO.md §6). These speak real JSON-RPC to a spawned
 // server instance, so they exercise the exact wire contract the model and the
 // dsh-mcp-client see.
@@ -120,14 +120,15 @@ test('tools/list exposes exactly the 2 approved tools with correct schemas', asy
   const { s } = await boot()
   const res = await s.call('tools/list', {})
   const names = res.tools.map((t) => t.name).sort()
-  expect(names).toEqual(['jiwo_read_note', 'jiwo_write_tag'])
+  expect(names).toEqual(['arkme_record_create', 'jiwo_read_note'])
 
   const read = res.tools.find((t) => t.name === 'jiwo_read_note')
   expect(read.inputSchema.required).toEqual(['noteId'])
   expect(read.inputSchema.properties.noteId.type).toBe('string')
 
-  const write = res.tools.find((t) => t.name === 'jiwo_write_tag')
-  expect(write.inputSchema.required.sort()).toEqual(['confirmed', 'noteId', 'tag'])
+  const write = res.tools.find((t) => t.name === 'arkme_record_create')
+  expect(write.inputSchema.required.sort()).toEqual(['confirmed', 'text'])
+  expect(write.inputSchema.properties.text.type).toBe('string')
   expect(write.inputSchema.properties.confirmed.type).toBe('boolean')
 })
 
@@ -150,16 +151,16 @@ test('error visibility: missing note returns an error, never silent empty', asyn
 test('confirmation gate: write without confirmed:true is rejected', async () => {
   const { s } = await boot()
   const res = await s.call('tools/call', {
-    name: 'jiwo_write_tag',
-    arguments: { noteId: 'note-1', tag: 'x', confirmed: false },
+    name: 'arkme_record_create',
+    arguments: { text: 'x', confirmed: false },
   })
   expect(res.isError).toBe(true)
   expect(res.content[0].text).toContain('confirmed must be true')
 
   // Missing confirmed entirely is also rejected.
   const res2 = await s.call('tools/call', {
-    name: 'jiwo_write_tag',
-    arguments: { noteId: 'note-1', tag: 'x' },
+    name: 'arkme_record_create',
+    arguments: { text: 'x' },
   })
   expect(res2.isError).toBe(true)
 })
@@ -167,48 +168,56 @@ test('confirmation gate: write without confirmed:true is rejected', async () => 
 test('idempotent write: repeat does not create a duplicate record', async () => {
   const { s } = await boot()
   const first = await s.call('tools/call', {
-    name: 'jiwo_write_tag',
-    arguments: { noteId: 'note-1', tag: 'verified', confirmed: true },
+    name: 'arkme_record_create',
+    arguments: { text: 'verified note', confirmed: true },
   })
   expect(first.isError).toBeFalsy()
   expect(first.structuredContent.changed).toBe(true)
-  expect(first.structuredContent.tags).toContain('verified')
+  expect(first.structuredContent.recordId).toBeTruthy()
 
   const second = await s.call('tools/call', {
-    name: 'jiwo_write_tag',
-    arguments: { noteId: 'note-1', tag: 'verified', confirmed: true },
+    name: 'arkme_record_create',
+    arguments: { text: 'verified note', confirmed: true },
   })
   expect(second.isError).toBeFalsy()
   expect(second.structuredContent.changed).toBe(false) // no-op
-  expect(second.structuredContent.tags).toEqual(first.structuredContent.tags)
-  expect(second.structuredContent.tags.filter((t) => t === 'verified')).toHaveLength(1)
+  expect(second.structuredContent.recordId).toEqual(first.structuredContent.recordId)
 
-  // Confirm the read path reflects the new tag.
-  const reread = await s.call('tools/call', { name: 'jiwo_read_note', arguments: { noteId: 'note-1' } })
-  expect(reread.structuredContent.note.tags).toContain('verified')
+  // Confirm the read path reflects the created record (idempotent dedup).
+  const reread = await s.call('tools/call', {
+    name: 'jiwo_read_note',
+    arguments: { noteId: first.structuredContent.recordId },
+  })
+  expect(reread.isError).toBeFalsy()
+  expect(reread.structuredContent.note.text).toBe('verified note')
 })
 
 test('persistence: the write lands in the JSONL store (source of truth)', async () => {
   const { s, dataFile } = await boot()
   await s.call('tools/call', {
-    name: 'jiwo_write_tag',
-    arguments: { noteId: 'note-1', tag: 'verified', confirmed: true },
+    name: 'arkme_record_create',
+    arguments: { text: 'PERSIST-ME', confirmed: true },
   })
   s.kill()
-  // The store file IS the Jiwo backend stub; parse it and check last-write-wins.
+  // The store file IS the Arkme backend stub; parse it and check last-write-wins.
   const lines = fs.readFileSync(dataFile, 'utf8').split('\n').filter(Boolean)
   const records = lines.map((l) => JSON.parse(l))
-  const note1 = records.filter((r) => r.id === 'note-1').at(-1)
-  expect(note1.tags).toContain('verified')
+  const created = records.filter((r) => r.kind === 'record' && r.text === 'PERSIST-ME').at(-1)
+  expect(created).toBeTruthy()
+  expect(created.id).toBeTruthy()
 })
 
 test('rollback proxy: read path stays intact after a write (no migration)', async () => {
   const { s } = await boot()
   await s.call('tools/call', {
-    name: 'jiwo_write_tag',
-    arguments: { noteId: 'note-1', tag: 'verified', confirmed: true },
+    name: 'arkme_record_create',
+    arguments: { text: 'rollback-proxy note', confirmed: true },
   })
   // Other seed notes are untouched; the stub is a pure tool-bridge.
+  const note1 = await s.call('tools/call', { name: 'jiwo_read_note', arguments: { noteId: 'note-1' } })
+  expect(note1.isError).toBeFalsy()
+  expect(note1.structuredContent.note.tags).toEqual(['review', 'growth'])
+
   const note2 = await s.call('tools/call', { name: 'jiwo_read_note', arguments: { noteId: 'note-2' } })
   expect(note2.isError).toBeFalsy()
   expect(note2.structuredContent.note.tags).toEqual(['migration', 'dsh'])

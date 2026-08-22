@@ -4,8 +4,8 @@
 // Phase 0 baseline collector for the Jiwo → DSH pilot (MIGRATION_JIWO.md §5/§6).
 //
 // Speaks REAL newline-delimited JSON-RPC 2.0 to an MCP server that implements
-// the Jiwo tool contract (jiwo_read_note / jiwo_write_tag). It defaults to the
-// in-repo stub for a *reference* baseline, and can target the real Jiwo
+// the Jiwo tool contract (jiwo_read_note / arkme_record_create). It defaults to
+// the in-repo stub for a *reference* baseline, and can target the real Jiwo
 // endpoint by setting JIWO_SERVER_CMD.
 //
 // This tool answers §5 gate (4): "record the current baseline of the candidate
@@ -15,8 +15,8 @@
 //
 // Metrics:
 //   1. success rate      - golden read + confirmed write, expected ~100%.
-//   2. error distribution - missing note / unconfirmed / empty tag / unknown,
-//                           each must surface as isError:true (§6 可运维性).
+//   2. error distribution - missing note / unconfirmed / empty text / missing
+//                           text / unknown, each must surface as isError:true (§6).
 //   3. latency p50/p95    - separate read and write percentiles (warmup-excluded).
 //   4. concurrency        - N concurrent reads from one client; ops/sec + error%.
 //   5. recovery time      - kill + restart -> ready + first successful read,
@@ -190,7 +190,7 @@ const report = {
     config: { reads: READS, writes: WRITES, concurrency: CONCURRENCY, warmup: WARMUP },
   },
   disclaimer:
-    'STUB-REFERENCE NUMBERS ONLY — not a production baseline. Replace JIWO_SERVER_CMD with the real Jiwo endpoint to collect fidelity numbers.',
+    'STUB-REFERENCE NUMBERS ONLY — not a production baseline. Replace JIWO_SERVER_CMD with the real Arkme endpoint to collect fidelity numbers.',
   golden: { reads: {}, writes: {} },
   errors: {},
   latency: { readMs: {}, writeMs: {} },
@@ -229,14 +229,14 @@ for (let i = 0; i < READS; i++) {
   else goldenReadOk.err++
 }
 
-// golden confirmed writes (unique tags to exercise the persist path)
+// golden confirmed writes (unique text to exercise the persist path)
 const writeLatencies = []
 for (let i = 0; i < WRITES; i++) {
-  const tag = `bl-${Date.now().toString(36)}-${i}`
+  const text = `bl-${Date.now().toString(36)}-${i}`
   const t0 = nowMs()
   const r = await client.call('tools/call', {
-    name: 'jiwo_write_tag',
-    arguments: { noteId: 'note-1', tag, confirmed: true },
+    name: 'arkme_record_create',
+    arguments: { text, confirmed: true },
   })
   writeLatencies.push(nowMs() - t0)
   if (r && !r.isError) goldenWriteOk.ok++
@@ -246,10 +246,10 @@ for (let i = 0; i < WRITES; i++) {
 // error-distribution workload (each must return isError:true)
 const errorCases = [
   { label: 'missing_note_read', call: { name: 'jiwo_read_note', arguments: { noteId: 'does-not-exist' } } },
-  { label: 'unconfirmed_write', call: { name: 'jiwo_write_tag', arguments: { noteId: 'note-1', tag: 'x', confirmed: false } } },
-  { label: 'missing_confirmed_write', call: { name: 'jiwo_write_tag', arguments: { noteId: 'note-1', tag: 'x' } } },
-  { label: 'empty_tag_write', call: { name: 'jiwo_write_tag', arguments: { noteId: 'note-1', tag: '   ', confirmed: true } } },
-  { label: 'missing_note_write', call: { name: 'jiwo_write_tag', arguments: { noteId: 'nope', tag: 'x', confirmed: true } } },
+  { label: 'unconfirmed_write', call: { name: 'arkme_record_create', arguments: { text: 'x', confirmed: false } } },
+  { label: 'missing_confirmed_write', call: { name: 'arkme_record_create', arguments: { text: 'x' } } },
+  { label: 'empty_text_write', call: { name: 'arkme_record_create', arguments: { text: '   ', confirmed: true } } },
+  { label: 'missing_text_write', call: { name: 'arkme_record_create', arguments: { confirmed: true } } },
 ]
 const ERROR_REPEAT = 10
 for (const c of errorCases) {
@@ -317,11 +317,12 @@ report.concurrency = {
 
 // 5. restart recovery + persistence -----------------------------------------
 // First perform a durable write we will check after restart.
-const PERSIST_TAG = `recover-${Date.now().toString(36)}`
-await client.call('tools/call', {
-  name: 'jiwo_write_tag',
-  arguments: { noteId: 'note-2', tag: PERSIST_TAG, confirmed: true },
+const PERSIST_TEXT = `recover-${Date.now().toString(36)}`
+const persistRes = await client.call('tools/call', {
+  name: 'arkme_record_create',
+  arguments: { text: PERSIST_TEXT, confirmed: true },
 })
+const PERSIST_ID = persistRes?.structuredContent?.recordId
 
 const tRestart = nowMs()
 client.kill()
@@ -339,10 +340,10 @@ const tReady = nowMs()
 // first successful read after restart
 const reread = await client2.call('tools/call', {
   name: 'jiwo_read_note',
-  arguments: { noteId: 'note-2' },
+  arguments: { noteId: PERSIST_ID },
 })
 const tFirstRead = nowMs()
-const persisted = reread && !reread.isError && reread.structuredContent?.note?.tags?.includes(PERSIST_TAG)
+const persisted = reread && !reread.isError && reread.structuredContent?.note?.text === PERSIST_TEXT
 report.recovery = {
   restartToReadyMs: Number((tReady - tRestart).toFixed(1)),
   restartToFirstReadMs: Number((tFirstRead - tRestart).toFixed(1)),

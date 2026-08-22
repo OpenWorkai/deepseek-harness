@@ -5,10 +5,10 @@
 
 ## 1. 已批准的切片（本试点覆盖）
 
-「检索一条笔记 + 经确认写入一个标签」：
+「检索一条笔记 + 经明确用户请求创建一条文本快记」：
 
 - `jiwo_read_note` —— 只读，绝不改写；缺失笔记返回**错误**而非静默空结果。
-- `jiwo_write_tag` —— 幂等、需显式确认的写入；写入落到即我后端（桩：`server/.jiwo-data.jsonl`）。
+- `arkme_record_create` —— 对齐真实 Arkme 工具的文本快记写入；公开业务入参为 `text`，写授权为 `explicit-user-write`。桩额外保留 `confirmed` 作为不可冒充真实安全控制的测试门，写入落到 `server/.jiwo-data.jsonl`。
 
 `storage-domain` 在本试点**仅用于本地缓存**已检索的笔记，绝不承载权威个人数据、不做数据迁移（§1/§5）。
 
@@ -17,10 +17,10 @@
 | 工具 | 入参 | 行为 | 错误/边界 |
 |---|---|---|---|
 | `jiwo_read_note` | `noteId: string` | 返回 `{id,title,body,tags,updatedAt}` | 笔记不存在 → `isError:true` + "not found"，**不返回空对象** |
-| `jiwo_write_tag` | `noteId`, `tag`, `confirmed:boolean` | 追加标签；已存在则 no-op（幂等） | `confirmed!==true` → 拒绝；笔记不存在 → 拒绝；空 tag → 拒绝 |
+| `arkme_record_create` | `text`, `confirmed:boolean`（`confirmed` 仅为桩门） | 在默认分类创建文本快记；同会话相同文本不重复创建 | `confirmed!==true` → 拒绝；空 text → 拒绝 |
 
-**幂等性**：同一 `(noteId, tag)` 重复调用，`tags` 不产生重复记录，两次均返回成功（`changed:false` 第二次）。
-**确认门**：`confirmed` 必须由 harness 在取得用户显式确认后才置 `true`；桩本身不做交互，只校验该布尔值。
+**幂等性**：桩以“同会话相同文本”顺序去重，两次均返回成功（第二次 `changed:false`）。真实 Arkme 以工具调用 id 派生 `recordUid`；桩的文本去重只用于契约测试，不能作为生产幂等证据。
+**确认门**：`confirmed` 必须由 harness 在取得用户显式确认后才置 `true`；桩本身不做交互，只校验该布尔值。真实 Arkme 的授权来自 `grant:'explicit-user-write'` 及会话确认机制，不能由模型自行构造的布尔值替代。
 **错误可见性**：所有失败都通过 MCP `isError` + 文本返回，绝不静默退化为空工具集（满足 §6 可运维性）。
 
 ## 3. 运行（从源码）
@@ -33,7 +33,7 @@ pnpm dsh web --patch "$PWD/examples/jiwo-pilot/jiwo-pilot.cordis.yml"
 ```
 
 - `node` 需在 `PATH` 上（`dsh-mcp-client` 以 `command: node` 拉起桩服务，沿用 `examples/mcp-memory` 的约定）。
-- 工具以 `mcp__jiwo__jiwo_read_note` / `mcp__jiwo__jiwo_write_tag` 暴露给模型。
+- 工具以 `mcp__jiwo__jiwo_read_note` / `mcp__jiwo__arkme_record_create` 暴露给模型。
 - `failOnStartupError: true`：**必须**。禁止「启动成功但无工具」的假成功；桩连不上或同步失败则插件激活直接报错。
 - 可选覆盖数据文件：`JIWO_DATA_FILE=/abs/path.jsonl dsh web --patch ...`（默认 `examples/jiwo-pilot/.jiwo-data.jsonl`，已被 `.gitignore` 忽略）。
 
@@ -61,11 +61,11 @@ pnpm exec vitest run --config examples/jiwo-pilot/vitest.config.mjs
 - [ ] 数据字典（实体/字段/关系/索引/敏感等级/保留删除规则）
 - [ ] 账户与权限模型（主体/租户/设备/登录态/刷新/注销/第三方绑定）
 - [ ] 候选链路的真实基线（成功率、错误类型、p50/p95、峰值并发、恢复时间）
-- [ ] 选定切片（读笔记+确认写标签）的字段级输入/输出、权限、错误契约与回滚步骤（本目录已先写出桩版）
+- [ ] 选定切片（读记录 + 明确用户要求后创建文本快记）的字段级输入/输出、权限、错误契约与回滚步骤（本目录已先写出桩版）
 
 ## 7. 客户端插件脚手架（未接入宿主构建）
 
-`client/` 是按 cookbook 写的 Host + browser 双包脚手架，目前**未**注册进 `pnpm-workspace.yaml` / `tsconfig.host.json` / `tsconfig.client.json`，因此不会进入宿主构建、不影响任何门禁。接入步骤：
+`client/` 是按 cookbook 写的 Host + browser 双包脚手架，目前**未**注册进 `pnpm-workspace.yaml` / `tsconfig.host.json` / `tsconfig.client.json`，因此不会进入宿主构建、不影响任何门禁。它仍保留旧的 `jiwo/tag_write` 事件草案，必须先重对齐为 record-create 语义，才可执行以下接入步骤：
 
 1. 在 `pnpm-workspace.yaml` 加入 `examples/jiwo-pilot/client`。
 2. 在 `tsconfig.host.json` / `tsconfig.client.json` 加入该包。
@@ -102,4 +102,4 @@ examples/jiwo-pilot/
 
 ## 9. 替换真实即我后端
 
-桩与真实后端的唯一差别在 `jiwo-stub-server.mjs` 的两个 handler：把内存/JSONL 读写换成对即我 API 的 HTTP 调用，保持相同工具契约即可。`jiwo_read_note` 仍只读、`jiwo_write_tag` 仍幂等且需 `confirmed`。overlay 的 `command`/`args` 指向真实即我 MCP server 后，其余不变。
+真实接入不能只替换 HTTP handler：`jiwo_read_note` 需要对齐 `arkme_records_search`/资源级授权，`arkme_record_create` 需要使用真实 `explicit-user-write` 授权、callId 幂等、审计和补偿语义，并删除桩专用的 `confirmed` 业务参数。overlay 的 `command`/`args` 指向真实 Arkme MCP server 后，还必须完成 PHASE0.md 中 P0-02 至 P0-07 的证据门禁。

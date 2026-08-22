@@ -1,21 +1,27 @@
 #!/usr/bin/env node
 // jiwo-stub-server.mjs
 // ---------------------------------------------------------------------------
-// Stub Jiwo MCP backend for the DSH pilot (Phase 1, MIGRATION_JIWO.md §5/§9).
+// Stub Jiwo/MCP backend for the DSH pilot (Phase 1, MIGRATION_JIWO.md §5/§9).
 //
 // This is NOT the real Jiwo backend. It is an in-repo, dependency-free stand-in
-// that lets the pilot run end-to-end today. The real Jiwo API is a drop-in
-// replacement: swap the two handlers below for HTTP calls to Jiwo and keep the
-// same tool contracts. Jiwo stays the sole source of truth in both cases.
+// that lets the pilot run end-to-end today. The real Arkme backend is a drop-in
+// replacement: swap the handlers below for HTTP calls to Arkme and keep the
+// same tool contracts. Arkme stays the sole source of truth in both cases.
 //
 // Transport: MCP over stdio (newline-delimited JSON-RPC 2.0).
 // Tools:
-//   jiwo_read_note  - read-only; never mutates. Missing note => error, not empty.
-//   jiwo_write_tag  - idempotent, confirmation-gated write (confirmed: true).
+//   jiwo_read_note       - read-only; never mutates. Missing note => error, not empty.
+//   arkme_record_create  - idempotent, confirmation-gated create of a plain-text
+//                          record (confirmed: true). Models the REAL Arkme tool
+//                          `arkme_record_create` (single business `text` param,
+//                          grant `explicit-user-write`). `confirmed` is stub-only
+//                          test scaffolding, not part of the real public schema.
+//                          NO tag-write capability exists in real Arkme; the pilot
+//                          deliberately omits one rather than fabricate it.
 //
 // Persistence: an in-memory Map seeded from SEED_NOTES, with write-through to a
 // JSONL file (default: examples/jiwo-pilot/.jiwo-data.jsonl, gitignored). The
-// JSONL file IS the pilot's "Jiwo backend" fact-source; the server performs no
+// JSONL file IS the pilot's "Arkme backend" fact-source; the server performs no
 // schema migration or deletion of any other data, which is what makes the
 // Phase 1 rollback (disable overlay -> old path still works) safe.
 // ---------------------------------------------------------------------------
@@ -118,20 +124,19 @@ const TOOLS = [
     },
   },
   {
-    name: 'jiwo_write_tag',
+    name: 'arkme_record_create',
     description:
-      'Append a tag to a Jiwo note. Idempotent: re-adding an existing tag is a no-op (no duplicate record). Requires explicit confirmation: pass confirmed:true ONLY after the user has approved the write. The write lands on the Jiwo backend (this stub: its JSONL store).',
+      "Create a plain-text record in the user's default Arkme category. The real Arkme tool grants `explicit-user-write`: call it only after the user has explicitly requested this save in the current conversation. Idempotent within a session: identical text is not duplicated. `confirmed` is stub-only test scaffolding and must not be treated as the real tool's trusted approval mechanism.",
     inputSchema: {
       type: 'object',
       properties: {
-        noteId: { type: 'string', description: 'Jiwo note id' },
-        tag: { type: 'string', description: 'Tag to append, e.g. "verified"' },
+        text: { type: 'string', description: 'Exact plain-text content to save as a record.' },
         confirmed: {
           type: 'boolean',
-          description: 'Must be true; set only after explicit user confirmation',
+          description: 'Must be true; set only after explicit user confirmation in the current conversation',
         },
       },
-      required: ['noteId', 'tag', 'confirmed'],
+      required: ['text', 'confirmed'],
     },
   },
 ]
@@ -143,29 +148,51 @@ async function dispatchTool(name, args) {
     return toolResult(JSON.stringify(note, null, 2), { note })
   }
 
-  if (name === 'jiwo_write_tag') {
+  if (name === 'arkme_record_create') {
     if (args.confirmed !== true) {
       return toolError(
         'write rejected: confirmed must be true. Obtain explicit user confirmation before writing.',
       )
     }
-    const note = store.get(args.noteId)
-    if (!note) return toolError('note not found: ' + String(args.noteId))
-    const tag = String(args.tag ?? '').trim()
-    if (!tag) return toolError('write rejected: tag must be a non-empty string')
-    const tags = [...note.tags]
-    const changed = !tags.includes(tag)
-    if (changed) tags.push(tag)
-    note.tags = tags
-    note.updatedAt = new Date().toISOString()
-    store.set(note.id, note)
-    await persist()
-    return toolResult(
-      changed
-        ? `Tag "${tag}" added to ${note.id}. Tags: ${tags.join(', ')}.`
-        : `Tag "${tag}" already present on ${note.id}; no change (idempotent). Tags: ${tags.join(', ')}.`,
-      { noteId: note.id, tags, changed },
-    )
+    const text = String(args.text ?? '').trim()
+    if (!text) return toolError('write rejected: text must be a non-empty string')
+
+    // Idempotent within session: identical text -> same record (no duplicate).
+    // Models the real Arkme callId-derived recordUid dedup. The real tool's
+    // idempotency is keyed by tool-call id; a single `text` is the closest
+    // faithful stand-in we can express without the call id.
+    let record = [...store.values()].find((r) => r.kind === 'record' && r.text === text)
+    const changed = !record
+    if (changed) {
+      const id = 'rec-' + Math.random().toString(36).slice(2, 10)
+      record = {
+        id,
+        kind: 'record',
+        text,
+        title: text.slice(0, 40),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }
+      store.set(id, record)
+      await persist()
+    }
+
+    // Mirror real Arkme formatWriteResult shape (saved_to_arkme_default_category /
+    // record_uid / local_state / remote_status) so the stub output is faithful.
+    const base =
+      'saved_to_arkme_default_category=true\n' +
+      `record_uid=${record.id}\n` +
+      'local_state=cached\n' +
+      'remote_status=pending'
+    const body = changed ? base : base + '\n(already exists; no duplicate created, idempotent)'
+    return toolResult(body, {
+      recordId: record.id,
+      recordUid: record.id,
+      text: record.text,
+      changed,
+      localState: 'cached',
+      remoteStatus: 'pending',
+    })
   }
 
   return toolError('unknown tool: ' + String(name))
@@ -224,4 +251,4 @@ process.on('SIGTERM', () => process.exit(0))
 
 await loadAll()
 // Signal readiness on stderr (stdout is the JSON-RPC channel).
-process.stderr.write('jiwo-stub: ready, ' + store.size + ' notes loaded\n')
+process.stderr.write('pilot-stub: ready, ' + store.size + ' notes loaded\n')
