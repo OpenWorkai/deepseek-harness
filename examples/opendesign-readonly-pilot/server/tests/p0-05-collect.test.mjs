@@ -29,9 +29,10 @@ test('marks aligned, classified read-only evidence as P0-05-PASS', () => {
     recovery: { readyAfterRestart: true, firstReadSucceeded: true },
   }
 
-  expect(compareReports(openWork, dsh)).toMatchObject({
+  expect(compareReports(openWork, dsh, {}, openWork)).toMatchObject({
     decision: 'P0-05-PASS',
     goEligible: true,
+    checks: { fallbackAfterDshSucceeded: true },
     differences: { list: [], get: [] },
   })
 })
@@ -59,6 +60,7 @@ test('preserves field gaps and unclassified legacy null errors as HOLD evidence'
 
   expect(comparison.decision).toBe('P0-05-HOLD')
   expect(comparison.checks.openWorkErrorsClassified).toBe(false)
+  expect(comparison.checks.fallbackAfterDshSucceeded).toBe(false)
   expect(comparison.differences.list).toEqual([{ key: 'title', openWork: null, dsh: 'Agentic' }])
   expect(comparison.differences.get).toEqual([{ key: 'title', openWork: null, dsh: 'Agentic' }])
 })

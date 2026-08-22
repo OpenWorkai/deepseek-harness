@@ -26,6 +26,7 @@ async function main() {
   const baseUrl = `http://127.0.0.1:${port}`
   const daemonEntry = path.join(openDesignRepo, 'apps', 'daemon', 'dist', 'cli.js')
   const openWorkOutput = path.join(outputDir, 'p0-05-openwork.json')
+  const openWorkFallbackOutput = path.join(outputDir, 'p0-05-openwork-after-dsh.json')
   const dshOutput = path.join(outputDir, 'p0-05-dsh.json')
   const comparisonOutput = path.join(outputDir, 'p0-05-comparison.json')
 
@@ -36,35 +37,19 @@ async function main() {
     gitCommit(DSH_ROOT),
   ])
 
-  await run(
-    'pnpm',
-    [
-      'exec',
-      'playwright',
-      'test',
-      '--config',
-      'playwright.config.ts',
-      'tests/e2e/features/art-design/opendesign-p0-05.e2e.ts',
-      '--reporter=list',
-    ],
-    {
-      cwd: openWorkRepo,
-      env: {
-        ...process.env,
-        E2E_DEV: '1',
-        OD_DATA_DIR: dataDir,
-        OPENWORK_OPENDESIGN_DAEMON_BIN: daemonEntry,
-        OPENWORK_OPENDESIGN_DAEMON_RUNTIME: daemonNode,
-        OPENDESIGN_GOLDEN_ID: goldenId,
-        P0_05_OPENWORK_OUTPUT: openWorkOutput,
-        P0_05_OPENWORK_COMMIT: openWorkCommit,
-        P0_05_OPENDESIGN_COMMIT: openDesignCommit,
-        P0_05_READS: String(reads),
-        P0_05_CONCURRENCY: String(concurrency),
-        P0_05_WARMUP: String(warmup),
-      },
-    },
-  )
+  await runOpenWorkProbe({
+    openWorkRepo,
+    dataDir,
+    daemonEntry,
+    daemonNode,
+    goldenId,
+    output: openWorkOutput,
+    openWorkCommit,
+    openDesignCommit,
+    reads,
+    concurrency,
+    warmup,
+  })
   const openWork = JSON.parse(await readFile(openWorkOutput, 'utf8'))
 
   const daemon = spawn(
@@ -122,19 +107,39 @@ async function main() {
     await stopProcess(daemon)
   }
 
-  const comparison = compareReports(openWork, dsh, {
-    generatedAt: new Date().toISOString(),
+  await runOpenWorkProbe({
+    openWorkRepo,
+    dataDir,
+    daemonEntry,
+    daemonNode,
+    goldenId,
+    output: openWorkFallbackOutput,
     openWorkCommit,
     openDesignCommit,
-    dshCommit,
-    dataDir,
-    goldenId,
+    reads: 1,
+    concurrency: 1,
+    warmup: 0,
   })
+  const openWorkFallback = JSON.parse(await readFile(openWorkFallbackOutput, 'utf8'))
+
+  const comparison = compareReports(
+    openWork,
+    dsh,
+    {
+      generatedAt: new Date().toISOString(),
+      openWorkCommit,
+      openDesignCommit,
+      dshCommit,
+      dataDir,
+      goldenId,
+    },
+    openWorkFallback,
+  )
   await writeFile(comparisonOutput, `${JSON.stringify(comparison, null, 2)}\n`, 'utf8')
   console.log(JSON.stringify({ output: comparisonOutput, decision: comparison.decision }, null, 2))
 }
 
-export function compareReports(openWork, dsh, meta = {}) {
+export function compareReports(openWork, dsh, meta = {}, openWorkFallback) {
   const listDiff = diffFields(openWork?.sample?.listGolden, dsh?.sample?.listGolden)
   const getDiff = diffFields(openWork?.sample?.getGolden, dsh?.sample?.getGolden)
   const dshErrorsClassified = Object.values(dsh?.errors || {}).every((entry) => entry?.classified === true)
@@ -157,6 +162,12 @@ export function compareReports(openWork, dsh, meta = {}) {
     openWorkErrorsClassified: openWork?.errors?.notFound?.classified === true,
     dshErrorsClassified,
     exactDshReadOnlyTools: dsh?.discovery?.exactReadOnlySet === true,
+    fallbackAfterDshSucceeded:
+      openWorkFallback?.meta?.dataDir === openWork?.meta?.dataDir &&
+      openWorkFallback?.meta?.goldenId === openWork?.meta?.goldenId &&
+      openWorkFallback?.golden?.list?.successRate === 100 &&
+      openWorkFallback?.golden?.get?.successRate === 100 &&
+      openWorkFallback?.errors?.notFound?.classified === true,
   }
   const goEligible = Object.values(checks).every(Boolean)
   return {
@@ -175,6 +186,50 @@ export function compareReports(openWork, dsh, meta = {}) {
       'Resource scopes differ and must not be combined into one process-wide overhead number.',
     ],
   }
+}
+
+async function runOpenWorkProbe({
+  openWorkRepo,
+  dataDir,
+  daemonEntry,
+  daemonNode,
+  goldenId,
+  output,
+  openWorkCommit,
+  openDesignCommit,
+  reads,
+  concurrency,
+  warmup,
+}) {
+  await run(
+    'pnpm',
+    [
+      'exec',
+      'playwright',
+      'test',
+      '--config',
+      'playwright.config.ts',
+      'tests/e2e/features/art-design/opendesign-p0-05.e2e.ts',
+      '--reporter=list',
+    ],
+    {
+      cwd: openWorkRepo,
+      env: {
+        ...process.env,
+        E2E_DEV: '1',
+        OD_DATA_DIR: dataDir,
+        OPENWORK_OPENDESIGN_DAEMON_BIN: daemonEntry,
+        OPENWORK_OPENDESIGN_DAEMON_RUNTIME: daemonNode,
+        OPENDESIGN_GOLDEN_ID: goldenId,
+        P0_05_OPENWORK_OUTPUT: output,
+        P0_05_OPENWORK_COMMIT: openWorkCommit,
+        P0_05_OPENDESIGN_COMMIT: openDesignCommit,
+        P0_05_READS: String(reads),
+        P0_05_CONCURRENCY: String(concurrency),
+        P0_05_WARMUP: String(warmup),
+      },
+    },
+  )
 }
 
 function thresholdInputs(report) {

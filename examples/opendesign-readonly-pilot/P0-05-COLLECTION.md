@@ -31,6 +31,7 @@ P0-05 在同一台机器、同一个 `OD_DATA_DIR` 和同一个黄金对象上�
 
 - `p0-05-openwork.json`：旧路径成功率、延迟、并发、进程树资源样本、daemon 重启和黄金字段快照。
 - `p0-05-dsh.json`：试点路径对应指标、适配器资源样本和黄金字段快照。
+- `p0-05-openwork-after-dsh.json`：停止 DSH 路径后，旧 IPC 路径重新读取同一黄金对象的回退冒烟证据。
 - `p0-05-comparison.json`：固定版本、输入目录、字段差异、阈值输入和只读 GO 资格判断。
 
 报告必须保留不一致结果。采集成功不等于 GO；`goEligible:false` 是有效证据，不得通过删字段或把缺失值归一为空字符串来制造一致。
@@ -43,6 +44,7 @@ P0-05 在同一台机器、同一个 `OD_DATA_DIR` 和同一个黄金对象上�
 - 并发调用全部命中同一黄金对象。
 - OpenWork 停止并重启 OpenDesign daemon 后，首个 get 再次成功。
 - DSH 适配器重启和 OpenDesign daemon 重启分别可恢复。
+- DSH 路径停止后，OpenWork 原生 IPC 再次读取同一 `OD_DATA_DIR` 成功。
 - 报告中不存在写工具调用或业务数据副本。
 
 P0-05 通过后仍维持 HOLD，直到 P0-07 获 owner 批准且 `PHASE0.md` §7 的全部 `PENDING` 数值由 owner 冻结。
