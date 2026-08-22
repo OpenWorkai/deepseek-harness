@@ -89,7 +89,7 @@ GO 只批准只读切片，OpenDesign 继续作为唯一事实源，OpenWork 原
 
 - **OpenWork `2aef14e2`**（`fix(unify): align unified main to buildable state`）——真实旧客户端（Electron / React），仓库：<https://github.com/OpenWorkai/openwork>。
 - **OpenDesign `0c7955de`（v0.11.1）**——本地设计系统引擎（daemon + HTTP API），仓库：<https://github.com/OpenWorkai/open-design>。源码启动：`OD_DATA_DIR=<controlled-dir> node apps/daemon/dist/cli.js --host 127.0.0.1 --port 7456 --no-open`。
-- **DeepSeek Harness `4e6e0a1`**（`fix(jiwo-pilot): align the pilot with Arkme record writes`）——DSH 底座；当前 PR 已把 `examples/jiwo-pilot` 的活动服务端、overlay、测试、采集器和客户端草案改为 OpenDesign 只读契约。
+- **DeepSeek Harness `4e6e0a1`**（历史提交标题：`fix(jiwo-pilot): align the pilot with Arkme record writes`）——DSH 底座；当前 PR 的 `examples/opendesign-readonly-pilot` 已使用 OpenDesign 只读契约。
 - **旧"缺即我源码"硬阻塞解除**：真实旧路径即 OpenWork → OpenDesign，两者源码均在工作区（`/Users/myking/workspaces/claude-projects/openwork`、`/Users/myking/workspaces/claude-projects/open-design`），无需再猎取外部安装包或旧版 DMG。
 
 ### 真实调用链（源码可确认）
@@ -150,7 +150,7 @@ arkme-senx/arkme-dsh-plugin @8d62319 与 Arkme 0.1.1 桌面发布包静态验真
 - **阻塞项（P0-06）**：OpenDesign `createUserDesignSystem` 自动分配唯一 slug，**不等于请求幂等**；重试可能创建第二个对象。因此写入仍需：宿主签发可信用户批准凭证、requestId / callId 幂等键、重试 / 并发 / 超时不能重复创建、actor / 时间 / 参数摘要 / 结果的审计、测试对象删除或补偿能力、回退旧路径后可见同一条新建数据。
 - 当前 `POST /api/design-systems`（`design-systems.ts:102`）与 `ipcBridge.opendesign.createDesignSystem`（`opendesignDaemonBridge.ts:56`）存在，但未经上述安全闸门，故不在只读 GO 范围。
 
-关闭 [DSH overlay](jiwo-pilot.cordis.yml) 只会阻止后续 DSH 调用并把流量切回 OpenWork 原生 IPC 路径；它不会撤销已写入 OpenDesign 事实源的数据，因此不能单独计为"写入回滚通过"。
+关闭 [DSH overlay](opendesign-readonly-pilot.cordis.yml) 只会阻止后续 DSH 调用并把流量切回 OpenWork 原生 IPC 路径；它不会撤销已写入 OpenDesign 事实源的数据，因此不能单独计为"写入回滚通过"。
 
 ## 6. 基线采集协议
 
@@ -171,7 +171,7 @@ arkme-senx/arkme-dsh-plugin @8d62319 与 Arkme 0.1.1 桌面发布包静态验真
 
 ### 当前 DSH 资产的正确定位
 
-`examples/jiwo-pilot/server` 已改为 loopback-only OpenDesign 只读适配器，不再包含活动的 Jiwo / Arkme records 桩。自动测试同时使用合成 OpenDesign HTTP fixture 和真实 `dsh-mcp-client`；受控采样另连接真实 OpenDesign 0.11.1 daemon。它们能证明 P0-08 的 DSH 接入能力，但不能替代 OpenWork renderer / IPC 旧路径基线，也不能把一次本机采样外推成 Phase 1 性能阈值。
+`examples/opendesign-readonly-pilot/server` 是 loopback-only OpenDesign 只读适配器，不包含活动的 Jiwo / Arkme records 桩。自动测试同时使用合成 OpenDesign HTTP fixture 和真实 `dsh-mcp-client`；受控采样另连接真实 OpenDesign 0.11.1 daemon。它们能证明 P0-08 的 DSH 接入能力，但不能替代 OpenWork renderer / IPC 旧路径基线，也不能把一次本机采样外推成 Phase 1 性能阈值。
 
 机器可读基线应保存到受控证据目录并记录来源，不应只引用 `/tmp` 文件，因为临时文件不可审计、不可共享。
 

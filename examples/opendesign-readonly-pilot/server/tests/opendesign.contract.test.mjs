@@ -321,7 +321,7 @@ test('write and unknown tools are unavailable and rejected', async () => {
 
 test('overlay points DSH at the OpenDesign read-only adapter', () => {
   const yaml = fs.readFileSync(
-    fileURLToPath(new URL('../../jiwo-pilot.cordis.yml', import.meta.url)),
+    fileURLToPath(new URL('../../opendesign-readonly-pilot.cordis.yml', import.meta.url)),
     'utf8',
   )
   expect(yaml).toContain('failOnStartupError: true')

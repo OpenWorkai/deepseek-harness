@@ -1,7 +1,7 @@
 // Scoped vitest config for the OpenWork -> OpenDesign read-only pilot.
 //
 // Run with:
-//   pnpm exec vitest run --config examples/jiwo-pilot/vitest.config.mjs
+//   pnpm exec vitest run --config examples/opendesign-readonly-pilot/vitest.config.mjs
 //
 // Deliberately isolated from the monorepo's root vitest suite (examples/ is
 // not a workspace package and must not affect `pnpm test` or CI). The pilot

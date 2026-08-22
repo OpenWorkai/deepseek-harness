@@ -8,7 +8,7 @@
 //   - own the local replay cache lifecycle (storage-domain, cache ONLY)
 //   - register the settings namespace that the browser card binds to
 // The tool execution itself is performed by the dsh-mcp-client overlay
-// (jiwo-pilot.cordis.yml). A composed bridge would observe list/get results and
+// (opendesign-readonly-pilot.cordis.yml). A composed bridge would observe list/get results and
 // emit the opendesign/list + opendesign/get session events.
 import type { Context } from '@deepseek-ai/cordis'
 import { installSettingsSection, settingsNamespace } from '@deepseek-ai/dsh-settings'

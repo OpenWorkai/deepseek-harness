@@ -5,7 +5,7 @@
 # local business store and exposes only list/get read tools.
 #
 # Enable from the repo root:
-#   dsh web --patch "$PWD/examples/jiwo-pilot/jiwo-pilot.cordis.yml"
+#   dsh web --patch "$PWD/examples/opendesign-readonly-pilot/opendesign-readonly-pilot.cordis.yml"
 #
 # failOnStartupError: true is required by the approved plan: we must NEVER get a
 # silent "started but no tools" success. If the adapter fails to start or its
@@ -20,7 +20,7 @@
         serverName: opendesign
         transport: stdio
         command: node
-        args: ['examples/jiwo-pilot/server/opendesign-readonly-server.mjs']
+        args: ['examples/opendesign-readonly-pilot/server/opendesign-readonly-server.mjs']
         cwd: !!js process.cwd()
         env:
           # The adapter intentionally accepts loopback HTTP only.

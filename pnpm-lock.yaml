@@ -749,7 +749,7 @@ importers:
         specifier: workspace:*
         version: link:../packages/workflow/workflow-worker-thread
 
-  examples/jiwo-pilot/client:
+  examples/opendesign-readonly-pilot/client:
     dependencies:
       '@deepseek-ai/schemastery':
         specifier: link:../../../vendor/schemastery

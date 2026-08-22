@@ -1,8 +1,11 @@
 #!/usr/bin/env node
 
-import { spawn } from 'node:child_process'
+import { execFile, spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
+import { promisify } from 'node:util'
+
+const execFileAsync = promisify(execFile)
 
 const argv = process.argv.slice(2)
 
@@ -74,6 +77,10 @@ class McpClient {
       for (const deferred of this.pending.values()) deferred.reject(new Error('MCP server exited'))
       this.pending.clear()
     })
+  }
+
+  get pid() {
+    return this.proc.pid
   }
 
   call(method, params = {}) {
@@ -202,6 +209,18 @@ if (!Array.isArray(systems) || systems.length === 0) {
   throw new Error('OpenDesign has no design systems available for the baseline')
 }
 const goldenId = process.env.OPENDESIGN_GOLDEN_ID?.trim() || systems[0].id
+const listGolden = systems.find((system) => system?.id === goldenId)
+if (!listGolden) {
+  await client.stop()
+  throw new Error(`OpenDesign list did not expose golden object ${goldenId}`)
+}
+const initialGet = await toolCall(client, 'opendesign_get_design_system', { id: goldenId })
+const getGolden = initialGet.structuredContent?.designSystem
+if (initialGet.isError || !getGolden || getGolden.id !== goldenId) {
+  await client.stop()
+  throw new Error(`OpenDesign get did not expose golden object ${goldenId}`)
+}
+const resourceBefore = await sampleProcess(client.pid)
 
 for (let index = 0; index < WARMUP; index++) {
   await toolCall(client, 'opendesign_list_design_systems')
@@ -254,6 +273,7 @@ const concurrencyElapsedMs = nowMs() - concurrencyStarted
 const concurrencyOk = concurrent.filter(
   (result) => result.status === 'fulfilled' && !result.value.isError,
 ).length
+const resourceAfter = await sampleProcess(client.pid)
 
 const restartStarted = nowMs()
 await client.stop()
@@ -278,6 +298,10 @@ const report = {
   disclaimer:
     'Measures the DSH-facing OpenDesign MCP path. It does not measure OpenWork renderer/IPC, CPU/RSS, or an OpenDesign daemon restart; collect those separately for P0-05.',
   discovery: { tools: toolNames, exactReadOnlySet: true },
+  sample: {
+    listGolden: normalizeSystem(listGolden, false),
+    getGolden: normalizeSystem(getGolden, true),
+  },
   golden: { list: listMetrics.success, get: getMetrics.success },
   latency: { listMs: listMetrics.latency, getMs: getMetrics.latency },
   errors,
@@ -288,6 +312,15 @@ const report = {
     elapsedMs: Number(concurrencyElapsedMs.toFixed(3)),
     opsPerSec: Number((CONCURRENCY / (concurrencyElapsedMs / 1_000)).toFixed(2)),
     successRate: Number(((concurrencyOk / CONCURRENCY) * 100).toFixed(2)),
+  },
+  resources: {
+    scope: 'OpenDesign MCP adapter process only on POSIX; upstream daemon excluded',
+    before: resourceBefore,
+    after: resourceAfter,
+    rssDeltaMiB:
+      resourceBefore && resourceAfter
+        ? Number((resourceAfter.rssMiB - resourceBefore.rssMiB).toFixed(3))
+        : null,
   },
   recovery: {
     scope: 'MCP adapter restart; OpenDesign daemon remains running',
@@ -323,3 +356,39 @@ if (argv.includes('--json')) {
 }
 
 export { report }
+
+function normalizeSystem(system, includeBody) {
+  const normalized = {}
+  for (const key of [
+    'id',
+    'title',
+    'summary',
+    'category',
+    'swatches',
+    'surface',
+    'source',
+    'status',
+    'isEditable',
+    'createdAt',
+    'updatedAt',
+  ]) {
+    if (system[key] !== undefined) normalized[key] = system[key]
+  }
+  if (includeBody && system.body !== undefined) normalized.body = system.body
+  return normalized
+}
+
+async function sampleProcess(pid) {
+  if (!pid || process.platform === 'win32') return null
+  try {
+    const { stdout } = await execFileAsync('ps', ['-p', String(pid), '-o', 'rss=,%cpu='])
+    const [rss, cpu] = stdout.trim().split(/\s+/)
+    if (!rss || !cpu) return null
+    return {
+      rssMiB: Number((Number(rss) / 1024).toFixed(3)),
+      cpuPercent: Number(Number(cpu).toFixed(3)),
+    }
+  } catch {
+    return null
+  }
+}

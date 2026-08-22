@@ -16,7 +16,7 @@
 命令：
 
 ```sh
-pnpm exec vitest run --config examples/jiwo-pilot/vitest.config.mjs
+pnpm exec vitest run --config examples/opendesign-readonly-pilot/vitest.config.mjs
 ```
 
 结果：1 个文件、14 项测试全部通过。覆盖：
@@ -31,7 +31,7 @@ pnpm exec vitest run --config examples/jiwo-pilot/vitest.config.mjs
 客户端脚手架也完成了独立 Host / browser 类型检查：
 
 ```sh
-pnpm exec tsc -b examples/jiwo-pilot/client/tsconfig.json
+pnpm exec tsc -b examples/opendesign-readonly-pilot/client/tsconfig.json
 ```
 
 该检查验证当前 package API 的类型兼容性，不代表已接入生产 Host / web 构建或完成 UI 组合验证。

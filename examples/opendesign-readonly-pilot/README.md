@@ -2,7 +2,7 @@
 
 > Phase 0 决策：**HOLD**。P0-08 的服务端与 DSH 桥接已完成；P0-05 真实 OpenWork 旧路径基线、P0-07 owner 批准的隐私白名单及数值阈值仍未完成。
 >
-> 目录名 `jiwo-pilot` 为历史路径，当前证据对象和运行契约已经全部重对齐为 OpenWork → OpenDesign design-systems。Jiwo / Arkme 只保留为迁移方向旁证。
+> 当前证据对象和运行契约均为 OpenWork → OpenDesign design-systems。Jiwo / Arkme 只保留为迁移方向旁证。
 
 本试点通过 `dsh-mcp-client` 把本机 OpenDesign HTTP API 暴露为两个只读 MCP 工具。OpenDesign 和它的 `OD_DATA_DIR` 仍是唯一事实源；适配器不保存业务数据、不复制数据库、不暴露写工具。
 
@@ -36,7 +36,7 @@ OD_DATA_DIR=<controlled-data-dir> \
 
 ```sh
 OPENDESIGN_BASE_URL=http://127.0.0.1:7456 \
-  pnpm dsh web --patch "$PWD/examples/jiwo-pilot/jiwo-pilot.cordis.yml"
+  pnpm dsh web --patch "$PWD/examples/opendesign-readonly-pilot/opendesign-readonly-pilot.cordis.yml"
 ```
 
 模型侧只能发现：
@@ -51,7 +51,7 @@ OPENDESIGN_BASE_URL=http://127.0.0.1:7456 \
 契约与真实 DSH 桥接测试：
 
 ```sh
-pnpm exec vitest run --config examples/jiwo-pilot/vitest.config.mjs
+pnpm exec vitest run --config examples/opendesign-readonly-pilot/vitest.config.mjs
 ```
 
 当前覆盖：精确工具清单、list/get 字段白名单、写工具不可用、七类上游故障、真实 `dsh-mcp-client` 发现与执行、overlay 配置。
@@ -60,7 +60,7 @@ pnpm exec vitest run --config examples/jiwo-pilot/vitest.config.mjs
 
 ```sh
 OPENDESIGN_BASE_URL=http://127.0.0.1:7456 \
-  node examples/jiwo-pilot/server/baseline-harness.mjs \
+  node examples/opendesign-readonly-pilot/server/baseline-harness.mjs \
   --lists 100 --gets 200 --concurrency 50 --warmup 5 --json
 ```
 
@@ -68,7 +68,7 @@ OPENDESIGN_BASE_URL=http://127.0.0.1:7456 \
 
 ## 回滚
 
-1. 停止带 overlay 的 DSH，或从启动命令移除 `jiwo-pilot.cordis.yml`。
+1. 停止带 overlay 的 DSH，或从启动命令移除 `opendesign-readonly-pilot.cordis.yml`。
 2. OpenWork 原生 IPC 路径继续读取同一个 OpenDesign daemon / `OD_DATA_DIR`。
 3. 本试点没有 schema 变更、业务数据副本或写入，因此无需反向数据迁移。
 
@@ -88,16 +88,16 @@ OPENDESIGN_BASE_URL=http://127.0.0.1:7456 \
 它没有 write 事件或写入 UI。该目录已作为依赖解析与独立类型检查的 workspace 成员，Host / browser 类型均受检；仍未加入生产 Host / web 构建与 Cordis 组合，实际事件生产、UI 回放和升级兼容仍需集成验证。
 
 ```sh
-pnpm exec tsc -b examples/jiwo-pilot/client/tsconfig.json
+pnpm exec tsc -b examples/opendesign-readonly-pilot/client/tsconfig.json
 ```
 
 ## 文件地图
 
 ```text
-examples/jiwo-pilot/
+examples/opendesign-readonly-pilot/
 ├── PHASE0.md
 ├── README.md
-├── jiwo-pilot.cordis.yml
+├── opendesign-readonly-pilot.cordis.yml
 ├── vitest.config.mjs
 ├── evidence/
 │   └── opendesign-dsh-readonly-e2e.md
