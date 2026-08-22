@@ -198,19 +198,19 @@ arkme-senx/arkme-dsh-plugin @8d62319 与 Arkme 0.1.1 桌面发布包静态验真
 
 阈值必须由业务、运维和安全 owner 在看到旧路径基线后、Phase 1 生产接线前签定；不得在试点结果出来后放宽。
 
-## 8. 现有 DSH 资产可采信范围
+## 8. DSH 配套设施资产可采信范围
 
 | 资产 | 已证明 | 尚未证明 |
 |---|---|---|
-| [只读适配器](server/opendesign-readonly-server.mjs) | loopback-only 真实 OpenDesign API 转换；精确暴露 list/get；字段白名单；无业务存储、无写工具 | owner 尚未批准最终白名单；不证明 OpenWork 旧路径等价、资源 / 租户授权或生产容量 |
-| [契约与 bridge 测试](server/tests/opendesign.contract.test.mjs) | 14 项测试覆盖工具清单、字段过滤、七类上游故障、写拒绝、overlay 及真实 `dsh-mcp-client` 执行 | 不证明 OpenWork UI 回退时间、长时稳定性或最终权限 / 隐私政策 |
-| [P0-05 同源采集器](server/p0-05-collect.mjs) | 顺序运行真实 OpenWork renderer → IPC、DSH MCP 与停止 DSH 后旧 IPC 回退；输出字段差异、成功率、延迟、并发、资源范围和恢复 | 正式峰值容量、长时稳定性与 owner 阈值签署 |
+| [只读适配器](server/opendesign-readonly-server.mjs) | loopback-only 真实 OpenDesign API 转换；精确暴露 list/get；字段白名单；无业务存储、无写工具 | 不证明 OpenWork 旧路径等价、资源 / 租户授权或生产容量 |
+| [契约与 bridge 测试](server/tests/opendesign.contract.test.mjs) | 14 项测试覆盖工具清单、字段过滤、七类上游故障、写拒绝、overlay 及真实 `dsh-mcp-client` 执行 | 不证明 OpenWork UI 回退时间、长时稳定性、资源 / 租户授权或生产容量 |
+| [P0-05 同源采集器](server/p0-05-collect.mjs) | 顺序运行真实 OpenWork renderer → IPC、DSH MCP 与停止 DSH 后旧 IPC 回退；输出字段差异、成功率、延迟、并发、资源范围和恢复 | 正式峰值容量与长时稳定性 |
 | [client 脚手架](client/) | 已重对齐 `opendesign/list` / `opendesign/get`，仅有回放缓存和只读 UI，无 write 事件；Host / browser 独立类型检查通过 | 尚未接入生产宿主构建；实际事件生产、UI 重放、权限展示与升级兼容仍未验证 |
 | [受控 P0-05 对照证据](evidence/opendesign-p0-05-comparison.md) | 13 项比较检查全部通过；同源字段一致、两侧 20/20、20 并发、恢复、错误分类与回退均成功 | 单机小样本不能单独承诺生产容量；资源采样范围不同 |
-| [P0-07 owner 审批单](evidence/opendesign-p0-07-owner-review.md) | 把字段、日志和持久化选择压缩为可签署清单 | 尚未签署 |
+| [P0-07 owner 审批单](evidence/opendesign-p0-07-owner-review.md) | 字段、日志和持久化方案 1 已签署 | 不批准正文持久化或范围外访问 |
 | [只读 GO 决策单](evidence/opendesign-readonly-go-decision.md) | 汇总 P0-01、P0-03/04、P0-07 与 §7 的 owner 批准和最终决议 | 已签署；当前 只读 GO（2026-08-22） |
 
-因此，P0-05 / P0-08 完成仍不能改写为“Phase 0 通过”。owner 边界确认、P0-07 审批与 §7 候选阈值冻结均已于 2026-08-22 完成签署，Phase 0 判定为 **只读 GO**。
+P0-05 / P0-08 只证明技术条件；owner 边界确认、P0-07 审批与 §7 候选阈值冻结均已于 2026-08-22 完成签署，因此 Phase 0 判定为 **只读 GO**。
 
 ## 9. 最短收尾顺序
 
