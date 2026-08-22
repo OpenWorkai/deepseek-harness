@@ -1,0 +1,31 @@
+# Jiwo pilot overlay (Phase 1, MIGRATION_JIWO.md §5/§9).
+#
+# Connects the in-repo stub Jiwo MCP backend to DSH through
+# @deepseek-ai/dsh-mcp-client. The stub stands in for the real Jiwo API until
+# the Phase 0 evidence (Jiwo source, data dictionary, production baselines) is
+# supplied; then point `command`/`args` at the real Jiwo MCP server instead.
+#
+# Enable from the repo root:
+#   dsh web --patch "$PWD/examples/jiwo-pilot/jiwo-pilot.cordis.yml"
+#
+# failOnStartupError: true is required by the approved plan: we must NEVER get a
+# silent "started but no tools" success. If the stub fails to connect or sync,
+# plugin activation is rejected loudly.
+#
+# Rollback: delete this overlay from the launch command and the old Jiwo client
+# keeps using the same Jiwo backend. No data migration runs, so nothing to undo.
+- insert:
+    - id: jiwo-pilot
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: jiwo
+        transport: stdio
+        command: node
+        args: ['examples/jiwo-pilot/server/jiwo-stub-server.mjs']
+        cwd: !!js process.cwd()
+        env:
+          # Optional override. Defaults to examples/jiwo-pilot/.jiwo-data.jsonl
+          # (gitignored). The file IS the pilot's Jiwo fact-source stub.
+          JIWO_DATA_FILE: !!js process.env.JIWO_DATA_FILE?.trim() || ''
+        failOnStartupError: true
+        toolCallTimeoutMs: 30000
