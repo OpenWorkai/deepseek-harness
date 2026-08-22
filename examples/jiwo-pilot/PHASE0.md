@@ -4,7 +4,7 @@
 >
 > Phase 0 的产物是一次 `GO / HOLD / NO-GO` 试点决策，不是全面迁移批准，也不是全面迁移工期估算。
 >
-> 证据截止：2026-08-22。本机 `claude-projects` 工作区未发现本试点之外的即我源码；该结论只覆盖已扫描的本地工作区，不代表源码不存在。
+> 证据截止：2026-08-22。真实即我 DSH 插件源码已定位并固定到 `arkme-senx/arkme-dsh-plugin @ 8d62319c5d58236a1542ea09d0bbba53ae2f023f`（**A 级证据**，见 §4 P0-01 证据明细）；迁移前两年旧客户端完整源码仍未发现，旧路径性能基线仍需已发布安装包黑盒或直连 `*.jotmo.cc` 采集。
 >
 > 关联材料：[迁移论证](../../MIGRATION_JIWO.md) · [试点说明](README.md) · [基线采集器](server/baseline-harness.mjs) · [契约测试](server/tests/jiwo.contract.test.mjs) · [桩后端](server/jiwo-stub-server.mjs) · [DSH overlay](jiwo-pilot.cordis.yml)
 
@@ -20,8 +20,8 @@ Phase 0 不实施真实业务写入，不迁移账户，不迁移主数据库，
 |---|---|---|
 | DSH 能通过 MCP 暴露两个试点工具 | 已验证（DSH/stub） | 桩后端、overlay 和契约测试可运行。 |
 | 试点工具的基础字段形状可表达 | 已验证（stub） | `jiwo_read_note` 与 `jiwo_write_tag` 已有草案。 |
-| 真实即我能满足同一契约 | 未验证 | 缺真实源码、API 或可运行端点。 |
-| 真实即我权限边界可安全映射 | 未验证 | 缺主体、租户、资源授权和会话模型。 |
+| 真实即我能满足同一契约 | 部分可核（A） | 源码已固定 @8d62319；`records/search`、`record/create` 等真实工具与后端 `/api/v1/records/*` 契约可见；字段级与资源级授权待即我 owner 确认。 |
+| 真实即我权限边界可安全映射 | 部分可核（A） | 会话/授权/失效模型可见（微信/手机号登录、keychain 会话、`invalidateScope`）；资源级读写授权与租户模型待即我 owner 确认。 |
 | 真实旧链路的性能与可靠性基线已知 | 未验证 | 当前只有本机桩的采集器自检数据。 |
 | 写入能业务回滚 | 未验证 | 关闭 overlay 只能停止新调用，不能撤销已写标签。 |
 | Phase 1 数值阈值已冻结 | 未完成 | 硬性安全阈值可先固定，性能与恢复阈值仍缺真实基线。 |
@@ -77,7 +77,7 @@ GO 只批准一个受控切片，旧即我后端继续作为唯一事实源，�
 
 | ID | 工作流 | 必须取得的 A 级证据 | 完成判据 | Owner | 状态 |
 |---|---|---|---|---|---|
-| P0-01 | 可运行版本 | 仓库位置、commit/tag、构建和启动命令、环境依赖 | 新环境按记录能启动候选链路 | 待指定：即我代码 owner | 阻塞 |
+| P0-01 | 可运行版本 / 源码定位 | **迁移后**即我 DSH 插件源码：仓库 `arkme-senx/arkme-dsh-plugin`、commit `8d62319c5d58236a1542ea09d0bbba53ae2f023f`、npm `@senguoyun/dsh-arkme@0.1.13`、构建 `pnpm build`、经 DSH `dsh plugin add` 启动、依赖见证据明细。**迁移前**两年旧客户端完整源码：未发现公开仓库，需旧客户端仓库权限或已发布安装包黑盒基线。 | 新环境按记录能启动候选链路；迁移后源码已定位并固定 | 待指定：即我代码 owner | 部分完成（迁移后源码已定位；迁移前源码仍阻塞） |
 | P0-02 | 功能与入口 | 候选功能入口、调用链、外部服务、旧客户端路径 | 读与写从入口到事实源均可追踪 | 待指定：即我代码 owner | 阻塞 |
 | P0-03 | 数据 | 实体、字段、关系、索引、唯一约束、体量、增长、敏感等级、保留和删除规则 | 试点涉及的每个字段均有来源与约束 | 待指定：数据 owner | 阻塞 |
 | P0-04 | 身份与权限 | 主体、租户、资源所有权、会话、刷新、注销、吊销、第三方绑定、授权检查点 | 每个工具调用能回答“谁对什么执行什么” | 待指定：身份/安全 owner | 阻塞 |
@@ -86,7 +86,21 @@ GO 只批准一个受控切片，旧即我后端继续作为唯一事实源，�
 | P0-07 | 隐私与模型上下文 | 可发送字段白名单、遮蔽规则、token 上限、日志规则、审计与撤回策略 | 未列入白名单的字段不会进入模型或浏览器持久态 | 待指定：隐私/安全 owner | 阻塞 |
 | P0-08 | DSH 可接入性 | 固定版本上的 MCP 启动失败、工具发现、事件重放、重启和版本升级结果 | 失败可见，UI 可重建，升级回归可执行 | DSH 迁移 owner | 部分完成 |
 
-不得把 owner 写成笼统的“用户”。Phase 0 收尾前必须填写能决定对应边界并执行回滚的具体责任人。
+### P0-01 证据明细（arkme-dsh-plugin @ 8d62319）
+
+> 证据等级 **A**：来自固定提交 `8d62319c5d58236a1542ea09d0bbba53ae2f023f` 的真实即我 DSH 插件源码（公开仓库，非候选人 Demo）。克隆校验：`git clone` 后 `git checkout 8d62319…`，HEAD 一致；534 个跟踪文件；TypeScript。
+> 完整静态检视见 [`evidence/arkme-dsh-plugin@8d62319-inventory.md`](evidence/arkme-dsh-plugin@8d62319-inventory.md)。（该仓库位于本工作区外的分析目录 `arkme-dsh-plugin-analysis/`，不污染 deepseek-harness。）
+
+- **身份与归属**：npm `@senguoyun/dsh-arkme@0.1.13`，组织 `arkme-senx`（关联 arkme.ai / team@arkme.ai）；README 自述为“Arkme 的 DeepSeek Harness 集成插件”。`cordis.patch.yml` 经 DSH 公开扩展点注入（`@deepseek-ai/dsh-*` rc.5 peer 依赖），**证明即我确实基于 DSH 重构**——与 MIGRATION_JIWO.md 的 strangler-fig 方向一致。
+- **排除项（不可作为真实生产源码）**：`ArkmeDemo` / `jiwo-frontend`（候选人笔试提交）、`brittanyyitian/jiwo-quicknote`（早期快记原型）。
+- **后端事实源（旧路径基线对象）**：`cordis.patch.yml` 暴露一组 `*.jotmo.cc` / `*.jiwo.cc` 微服务——`record.jotmo.cc`（记录/笔记）、`api.jotmo.cc`（认证/更新）、`chat` / `im` / `bot` / `world` / `relation` / `intelligent` / `audio` / `webrtc` / `extension-publish`。旧客户端（迁移前）大概率直连同一组 API，故 `src/services/*` 即是旧路径后端契约的可检视来源（支撑 P0-03/P0-04/P0-05 的 API 形状；**不**替代旧客户端运行时性能基线）。
+- **候选切片真实工具面**：`src/tools/business/records/` 提供 `arkme_records_search`（读，query/cursor/limit/before_millis/sync_all）、`arkme_record_recent`、`arkme_record_images`、`arkme_record_create`（写，text，`grant:'explicit-user-write'`）。**注意：真实“记录”是文本快记（title/text_content/version/template_kind），未见对外暴露的“标签写入”工具**——试点 `jiwo_write_tag` 需对齐：要么改用 `arkme_record_create`（追加快记），要么确认标签是另一实体（待 P0-02/P0-03 澄清）。
+- **可信用户批准（印证 §5 关键纠正）**：`src/tools/shared/conversational-confirmation.ts` 实现**对话式确认**——要求同一 agent 在工具返回 `confirmation_required` 后的**后续直接人类消息**明确批准；对参数做 sha256 指纹，改参需重新确认；TTL 10 分钟。它**不接受模型自行填写的布尔值**，直接印证“`confirmed:true` 不能代表可信用户授权”。
+- **并发与超时（P0-05/06 种子）**：`src/request-coordinator.ts` 按 lane（auth/interactive-read/background-read/write/image）做准入控制，默认写 lane `maxConcurrent:4 / ratePerSecond:5 / burst:8 / maxQueued:128`；`requestTimeoutMs:30000`（cordis.patch.yml）；队列溢出抛 `ArkmeRequestQueueOverflowError`（背压信号）。这些是客户端默认值，**不是**后端真实容量，仅供阈值讨论起点。
+- **认证与会话（P0-04 种子）**：`src/services/auth-service.ts` 支持微信扫码、手机号+Geetest 验证码、测试环境登录；会话（access/refresh token + userId）存 keychain；`logout()` 调 `invalidateScope` 清除缓存/在途请求并强制陈旧错误（会话失效语义）。
+- **关键安全旋钮**：`allowNonLoopback:false`（仅环回）、`extensionTrustedSigningKeys`（ed25519 扩展验签）、`geetestCaptchaId`、`maxTextLength:20000`、`maxUploadBytes:104857600`。
+
+不得把 owner 写成笼统的"用户"。Phase 0 收尾前必须填写能决定对应边界并执行回滚的具体责任人。
 
 ## 5. 候选切片及契约缺口
 
@@ -194,7 +208,7 @@ GO 只批准一个受控切片，旧即我后端继续作为唯一事实源，�
 | 决策 | HOLD |
 | 日期 | 2026-08-22 |
 | 放行范围 | 无；继续 Phase 0 证据收集 |
-| 已接受证据 | DSH/stub 的工具契约、采集方法和脚手架方向 |
-| 主要阻塞 | P0-01 至 P0-07 的真实即我证据；第 7 节未冻结阈值 |
+| 已接受证据 | DSH/stub 的工具契约、采集方法、脚手架方向；**A 级** arkme-dsh-plugin @8d62319 源码与后端契约静态检视（迁移后即我源码、对话式确认模型、lane 并发模型、认证与会话失效） |
+| 主要阻塞 | P0-01 源码定位已解除（arkme-dsh-plugin @8d62319，迁移后）；**迁移前**旧客户端完整源码仍缺，旧路径性能基线须黑盒采集；P0-02（旧客户端路径）至 P0-07 真实即我证据（字段/权限/审计/隐私 owner 确认）仍缺；第 7 节性能与恢复阈值仍 PENDING。 |
 | 下一次评审触发 | 即我可运行版本、数据/权限材料和旧路径基线到位 |
 | 全面迁移决定 | 未批准，且不在本文件决策范围内 |
