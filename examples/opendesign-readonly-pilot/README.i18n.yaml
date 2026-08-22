@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write examples/opendesign-readonly-pilot/README.md
-README.md: e7cd422ba60999ccb0401c6f6167c995fb5cbe43
-README.zh.md: f324701c3fd11250febb1da612674e4e611a4ecc
+README.md: 72f7a65065afc5a0524d769d925d9e20587adea3
+README.zh.md: 69c5d402c54602fe9f132da362e38e31df7f8c8b

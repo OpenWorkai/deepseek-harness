@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-22-opendesign-detail-memory-only-cache.md
+2026-08-22-opendesign-detail-memory-only-cache.md: 92ab2d6ce78302c822ee57537f9e5f2ecfc81b5c
+2026-08-22-opendesign-detail-memory-only-cache.zh.md: 6f8936df79d88afa3e6da1ea556a5e7aaebbf4eb

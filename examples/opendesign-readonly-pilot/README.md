@@ -81,7 +81,7 @@ P0-05 automatically verified that the legacy IPC path can list/get from the same
 `client/` is a Host + browser draft that is not wired into the production build:
 
 - `src/events.ts`: `opendesign/list` and `opendesign/get` replay events
-- `src/cache/opendesign-cache.ts`: disposable local replay cache, not a source of truth
+- `src/cache/opendesign-cache.ts`: disposable persisted list-summary cache plus session-memory detail cache; persisted records reject `body`
 - `src/index.ts`: Host cache lifecycle and the `opendesign-pilot` settings namespace
 - `src/client/index.ts`: read-only settings card and `opendesign-result` replay node
 - `tsconfig.host.json` / `tsconfig.client.json`: validate the Host and browser entry points separately
@@ -98,6 +98,7 @@ pnpm exec tsc -b examples/opendesign-readonly-pilot/client/tsconfig.json
 ```text
 examples/opendesign-readonly-pilot/
 ├── PHASE0.md
+├── PHASE1.md
 ├── README.md
 ├── README.zh.md
 ├── opendesign-readonly-pilot.cordis.yml
@@ -116,6 +117,7 @@ examples/opendesign-readonly-pilot/
     ├── tsconfig.host.json
     ├── tsconfig.client.json
     ├── tsconfig.json
+    ├── tests/opendesign-cache.test.ts
     └── src/
         ├── events.ts
         ├── cache/opendesign-cache.ts
@@ -123,11 +125,8 @@ examples/opendesign-readonly-pilot/
         └── client/index.ts
 ```
 
-## Remaining Read-only GO Blockers
+## Phase 1 Status
 
-- P0-01: record the formal startup owner and owner sign-off
-- P0-03 / P0-04: obtain owner sign-off on data retention / deletion and the local authorization boundary
-- P0-07: obtain owner approval for the field allowlist, log-deny fields, and masking rules
-- §7: freeze the populated candidate thresholds for success rate, latency, concurrency, resources, and recovery
+Phase 0 is read-only GO. [`PHASE1.md`](PHASE1.md) governs the authorized non-production implementation and imports the signed field, logging, persistence, performance, recovery, and rollback requirements without expanding them.
 
 The `opendesign_create_design_system` write operation is outside this GO decision. Do not add it without credible approval plus evidence for request idempotency, auditability, and compensation.

@@ -81,7 +81,7 @@ P0-05 已自动验证停止 DSH 路径后旧 IPC 对同一 `OD_DATA_DIR` 的 lis
 `client/` 是尚未接入宿主构建的 Host + browser 草案：
 
 - `src/events.ts`：`opendesign/list`、`opendesign/get` 回放事件
-- `src/cache/opendesign-cache.ts`：可丢弃的本地回放缓存，非事实源
+- `src/cache/opendesign-cache.ts`：可丢弃的 list 摘要持久缓存与会话内存详情缓存；持久记录拒绝 `body`
 - `src/index.ts`：Host 缓存生命周期和 `opendesign-pilot` 设置命名空间
 - `src/client/index.ts`：只读设置卡与 `opendesign-result` 回放节点
 - `tsconfig.host.json` / `tsconfig.client.json`：分别校验 Host 与 browser 入口
@@ -98,6 +98,7 @@ pnpm exec tsc -b examples/opendesign-readonly-pilot/client/tsconfig.json
 ```text
 examples/opendesign-readonly-pilot/
 ├── PHASE0.md
+├── PHASE1.md
 ├── README.md
 ├── README.zh.md
 ├── opendesign-readonly-pilot.cordis.yml
@@ -116,6 +117,7 @@ examples/opendesign-readonly-pilot/
     ├── tsconfig.host.json
     ├── tsconfig.client.json
     ├── tsconfig.json
+    ├── tests/opendesign-cache.test.ts
     └── src/
         ├── events.ts
         ├── cache/opendesign-cache.ts
@@ -123,11 +125,8 @@ examples/opendesign-readonly-pilot/
         └── client/index.ts
 ```
 
-## 仍阻塞只读 GO
+## Phase 1 状态
 
-- P0-01：补正式启动责任人和 owner 签字
-- P0-03 / P0-04：数据保留 / 删除与本机权限边界获得 owner 签字
-- P0-07：字段白名单、日志禁入字段和遮蔽规则获 owner 批准
-- §7：冻结已填入的成功率、延迟、并发、资源和恢复候选阈值
+Phase 0 已判定为只读 GO。[`PHASE1.md`](PHASE1.md) 约束已授权的非生产实现，直接引用已签署的字段、日志、持久化、性能、恢复与回退要求，不扩大其范围。
 
 写入 `opendesign_create_design_system` 不属于本次 GO。没有可信批准、请求幂等、审计与补偿证据前，不得添加。

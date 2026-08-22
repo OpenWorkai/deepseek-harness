@@ -17,7 +17,7 @@ export default defineConfig({
   test: {
     root,
     environment: 'node',
-    include: ['server/tests/**/*.test.mjs'],
+    include: ['server/tests/**/*.test.mjs', 'client/tests/**/*.test.ts'],
     testTimeout: 20000,
     pool: 'forks',
   },
