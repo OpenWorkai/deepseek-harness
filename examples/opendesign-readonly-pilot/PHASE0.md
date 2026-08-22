@@ -1,4 +1,4 @@
-# OpenWork → DSH Phase 0：迁移证据与试点放行清单
+# OpenWork 只读接入 OpenDesign Phase 0：DSH 配套设施验证与试点放行清单
 
 > 当前结论：**只读 GO（2026-08-22 经 [`只读 GO 决策单`](evidence/opendesign-readonly-go-decision.md) 合并签署）**——P0-05 同源真实对照、P0-08 DSH 只读端到端、P0-03/04 owner 边界、P0-07 隐私审批与 §7 候选阈值均已完成并签署；放行范围仅限本机单用户 + loopback 的只读 list/get 试点。写工具、远程访问、多租户、资源级共享及生产 Host/web 接线不在本次 GO。
 >
@@ -85,7 +85,7 @@ GO 只批准只读切片，OpenDesign 继续作为唯一事实源，OpenWork 原
 | P0-05 | 旧链路基线 | 已完成（A+B） | 13 项比较检查全部通过；实测值已进入 §7 并由 owner 冻结 | Myking（合并 owner） |
 | P0-06 | 写入安全 | 只读切片不阻塞 | 明确写工具不存在（只读切片）且调用被拒绝；写入另行放行 | 待 Phase 1 第二道门 |
 | P0-07 | 隐私与模型上下文 | 已完成 + owner 已签 | 模型字段白名单、日志禁入字段、遮蔽与浏览器持久化方案 1 已由隐私 / 安全 owner 批准 | Myking（合并 owner） |
-| P0-08 | DSH 可接入性 | 已完成（服务端 / bridge） | 已完成精确工具发现、真实 API list/get、故障分类、适配器 / daemon 重启后再读；P0-05 又验证停止 DSH 后旧 IPC 可读 | DSH 迁移 owner |
+| P0-08 | DSH 设施可接入性 | 已完成（服务端 / bridge） | 已完成精确工具发现、真实 API list/get、故障分类、适配器 / daemon 重启后再读；P0-05 又验证停止 DSH 后旧 IPC 可读 | OpenWork（DSH 设施）owner |
 
 ### P0-01 证据明细（OpenWork + OpenDesign 固定版本）
 
