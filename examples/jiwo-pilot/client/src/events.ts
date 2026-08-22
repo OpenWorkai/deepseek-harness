@@ -1,27 +1,36 @@
-// events.ts — producer-owned event contract for the Jiwo pilot conversation node.
-//
-// Per adding-a-conversation-node.md, every event that builds one Node must
-// carry a stable business id. The Jiwo adapter (which observes the
-// mcp__jiwo__* tool results) emits these events; the client plugin only
-// consumes them to render a replayable node. Model-visible state therefore
-// lives in the session event stream, not in transient component state.
+// Producer-owned event contract for replaying OpenDesign read results.
 import type { Branded } from '@deepseek-ai/dsh-brand'
+import type {} from '@deepseek-ai/dsh-session/types'
 
-export type JiwoNoteId = Branded<'JiwoNoteId'>
+export type OpenDesignSystemId = Branded<'OpenDesignSystemId'>
 
-export interface JiwoReadData {
-  readonly noteId: JiwoNoteId
-  readonly turn: number
-  readonly step: number
+export type OpenDesignSystemSummary = {
+  readonly id: OpenDesignSystemId
   readonly title: string
-  readonly tags: readonly string[]
+  readonly category?: string
+  readonly summary?: string
+  readonly swatches?: readonly string[]
+  readonly surface?: string
+  readonly source?: string
+  readonly status?: string
+  readonly isEditable?: boolean
+  readonly createdAt?: string
+  readonly updatedAt?: string
 }
 
-export interface JiwoTagWriteData {
-  readonly noteId: JiwoNoteId
-  readonly tag: string
-  readonly confirmed: boolean
-  readonly changed: boolean
+export type OpenDesignSystemDetail = OpenDesignSystemSummary & {
+  readonly body?: string
+}
+
+export type OpenDesignListData = {
+  readonly requestId: string
+  readonly designSystems: readonly OpenDesignSystemSummary[]
+  readonly turn: number
+  readonly step: number
+}
+
+export type OpenDesignGetData = {
+  readonly designSystem: OpenDesignSystemDetail
   readonly turn: number
   readonly step: number
 }
@@ -29,14 +38,14 @@ export interface JiwoTagWriteData {
 declare module '@deepseek-ai/dsh-session/types' {
   interface SessionEventMap {
     /**
-     * A note was read from Jiwo and surfaced to the user.
+     * A read-only OpenDesign list result was surfaced to the user.
      * @mode emit
      */
-    'jiwo/read': JiwoReadData
+    'opendesign/list': OpenDesignListData
     /**
-     * A confirmed, idempotent tag write landed on Jiwo.
+     * A read-only OpenDesign detail result was surfaced to the user.
      * @mode emit
      */
-    'jiwo/tag_write': JiwoTagWriteData
+    'opendesign/get': OpenDesignGetData
   }
 }

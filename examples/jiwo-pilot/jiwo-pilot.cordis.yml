@@ -1,31 +1,30 @@
-# Jiwo pilot overlay (Phase 1, MIGRATION_JIWO.md §5/§9).
+# OpenWork → OpenDesign read-only pilot overlay (Phase 0 / P0-08).
 #
-# Connects the in-repo stub Jiwo MCP backend to DSH through
-# @deepseek-ai/dsh-mcp-client. The stub stands in for the real Jiwo API until
-# the Phase 0 evidence (Jiwo source, data dictionary, production baselines) is
-# supplied; then point `command`/`args` at the real Jiwo MCP server instead.
+# Connects DSH to the real local OpenDesign HTTP API through a dependency-free
+# stdio MCP adapter. OpenDesign remains the sole fact source; the adapter has no
+# local business store and exposes only list/get read tools.
 #
 # Enable from the repo root:
 #   dsh web --patch "$PWD/examples/jiwo-pilot/jiwo-pilot.cordis.yml"
 #
 # failOnStartupError: true is required by the approved plan: we must NEVER get a
-# silent "started but no tools" success. If the stub fails to connect or sync,
-# plugin activation is rejected loudly.
+# silent "started but no tools" success. If the adapter fails to start or its
+# tools cannot be synchronized, plugin activation is rejected loudly.
 #
-# Rollback: delete this overlay from the launch command and the old Jiwo client
-# keeps using the same Jiwo backend. No data migration runs, so nothing to undo.
+# Rollback: remove this overlay from the launch command. OpenWork's native IPC
+# path keeps reading the same OpenDesign daemon and OD_DATA_DIR.
 - insert:
-    - id: jiwo-pilot
+    - id: opendesign-readonly-pilot
       name: '@deepseek-ai/dsh-mcp-client'
       config:
-        serverName: jiwo
+        serverName: opendesign
         transport: stdio
         command: node
-        args: ['examples/jiwo-pilot/server/jiwo-stub-server.mjs']
+        args: ['examples/jiwo-pilot/server/opendesign-readonly-server.mjs']
         cwd: !!js process.cwd()
         env:
-          # Optional override. Defaults to examples/jiwo-pilot/.jiwo-data.jsonl
-          # (gitignored). The file IS the pilot's Jiwo fact-source stub.
-          JIWO_DATA_FILE: !!js process.env.JIWO_DATA_FILE?.trim() || ''
+          # The adapter intentionally accepts loopback HTTP only.
+          OPENDESIGN_BASE_URL: !!js process.env.OPENDESIGN_BASE_URL?.trim() || 'http://127.0.0.1:7456'
+          OPENDESIGN_REQUEST_TIMEOUT_MS: !!js process.env.OPENDESIGN_REQUEST_TIMEOUT_MS?.trim() || '10000'
         failOnStartupError: true
         toolCallTimeoutMs: 30000

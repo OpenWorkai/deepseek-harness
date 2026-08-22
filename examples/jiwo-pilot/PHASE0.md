@@ -1,12 +1,12 @@
 # OpenWork → DSH Phase 0：迁移证据与试点放行清单
 
-> 当前结论：**HOLD——只读 GO 路径已清晰，但真实只读基线与 DSH 端到端验证尚未完成，不放行。**
+> 当前结论：**HOLD——P0-08 DSH 只读端到端已完成，但 P0-05 真实 OpenWork 旧路径基线、P0-07 owner 批准的隐私白名单与数值阈值尚未完成，不放行。**
 >
 > 证据对象已重对齐：从"即我 / Jiwo / Arkme records"改为 **OpenWork → OpenDesign design-systems**。OpenWork 是当前真实旧客户端，OpenDesign 是其本地设计系统引擎（HTTP API + `OD_DATA_DIR` 文件系统事实源）。即我 / Jiwo / Arkme 作为 DSH 迁移方向的**旁证**保留于 §4 参考，但不再作为本试点 GO 的证据对象。
 >
 > 候选切片改为**只读**两个工具：`opendesign_list_design_systems` / `opendesign_get_design_system`；写入（`opendesign_create_design_system`）另设第二道门，不在本次 GO 范围。
 >
-> 固定版本：OpenWork `2aef14e2`、OpenDesign `0c7955de`（v0.11.1）、DeepSeek Harness `4e6e0a1`。
+> 固定版本：OpenWork `2aef14e2`、OpenDesign `0c7955de`（v0.11.1）、DeepSeek Harness 底座 `4e6e0a1`；P0-08 实现位于当前 PR。
 >
 > 证据截止：2026-08-22。
 
@@ -25,7 +25,7 @@ Phase 0 不实施真实写入，不迁移账户，不复制数据库，不停用
 | 两条路径读同一事实源 | 已验证（设计） | 旧路径（OpenWork IPC）与试点路径（DSH overlay）都读 `OD_DATA_DIR`（`USER_DESIGN_SYSTEMS_DIR`）文件系统；无数据库复制 |
 | 写入可被拒 / 隔离 | 设计可核（只读切片不含写） | `POST /api/design-systems` 存在但不在候选集；只读切片不暴露写工具 |
 | 真实旧链路基线已知 | 未验证 | 尚未用真实 OpenWork + OpenDesign 跑基线 |
-| DSH 能暴露同契约只读工具并端到端通 | 未验证 | P0-08 需重做：用真实 OpenDesign API 替换 records stub，验证发现 / 失败 / 重启 / 回退 |
+| DSH 能暴露同契约只读工具并端到端通 | 已验证（B） | P0-08：真实 `dsh-mcp-client` 只发现 list/get；真实 OpenDesign 0.11.1 list/get、故障分类、适配器重启与 daemon 重启后再次读取均通过 |
 | Phase 1 数值阈值已冻结 | 未完成 | 性能与恢复阈值待 P0-05 真实基线 |
 
 ## 2. 证据分级
@@ -36,10 +36,10 @@ Phase 0 不实施真实写入，不迁移账户，不复制数据库，不停用
 |---|---|---|
 | A：真实 OpenWork / OpenDesign 证据 | 来自固定版本的 OpenWork / OpenDesign 源码、真实本地 HTTP API、本地 `OD_DATA_DIR` 数据、脱敏数据或等价预生产环境 | 可用于 Phase 1 放行与阈值制定。 |
 | B：DSH 集成证据 | 来自固定 DSH 版本上的插件 / MCP / overlay、UI、重启、故障与升级验证 | 可证明 DSH 接入能力，不能证明 OpenDesign 业务等价。 |
-| C：桩 / 采集器自检证据 | 来自当前 records 桩、合成数据和本机基准（含 `examples/jiwo-pilot/server` 现有资产） | 只能验证采集方法，不能作为真实成功率、延迟、容量、权限或持久性基线。 |
+| C：桩 / 采集器自检证据 | 来自合成 OpenDesign HTTP fixture、契约测试和本机采样 | 只能验证契约与采集方法，不能替代 OpenWork 旧路径基线或 owner 的权限 / 隐私结论。 |
 | D：假设 | 尚无可复核材料的判断 | 只能登记为待验证项，不能进入迁移收益或工期结论。 |
 
-当前已具备 A 级（OpenWork / OpenDesign 源码与调用链）与 C 级（records 桩自检）证据；决定 Phase 1 真实基线的 A 级采集仍待 P0-05。
+当前已具备 A 级（OpenWork / OpenDesign 源码与调用链）、B 级（真实 DSH bridge → OpenDesign API）与 C 级（合成故障 fixture）证据；决定 Phase 1 数值阈值的旧路径 A 级采集仍待 P0-05。
 
 ## 3. 出口合同
 
@@ -76,20 +76,20 @@ GO 只批准只读切片，OpenDesign 继续作为唯一事实源，OpenWork 原
 
 | ID | 工作流 | 新状态 | 达到 GO 还需完成 | Owner |
 |---|---|---|---|---|
-| P0-01 | 可运行版本 / 源码定位 | 基本完成 | 在 PHASE0 写入 OpenWork / OpenDesign 两个仓库、commit、启动命令和责任人 | 待指定：OpenWork / OpenDesign owner |
+| P0-01 | 可运行版本 / 源码定位 | 基本完成 | 仓库、commit、daemon 启动命令已固化；补正式责任人，并在支持 Node 环境复验 | 待指定：OpenWork / OpenDesign owner |
 | P0-02 | 功能与入口 | 可直接完成 | 固化上述真实调用链和两个候选 API（list / get） | 待指定：OpenWork / OpenDesign owner |
 | P0-03 | 数据 | 部分可完成 | 固化字段、目录结构、删除 / 保留规则和黄金测试数据 | 待指定：数据 owner |
 | P0-04 | 身份与权限 | 有条件完成 | 明确仅限本机单用户、loopback；不得宣称支持租户 / 资源级授权 | 待指定：身份 / 安全 owner |
 | P0-05 | 旧链路基线 | 可立即采集 | 用真实 OpenWork + OpenDesign 跑成功率、延迟、并发、资源、重启 | 待指定：运维 owner |
 | P0-06 | 写入安全 | 只读切片不阻塞 | 明确写工具不存在（只读切片）且调用被拒绝；写入另行放行 | 待指定：业务 owner |
 | P0-07 | 隐私与模型上下文 | 仍需补齐 | 冻结模型字段白名单、日志禁入字段、遮蔽规则 | 待指定：隐私 / 安全 owner |
-| P0-08 | DSH 可接入性 | 需重做部分证据 | 用真实 OpenDesign API 替换 records stub，验证发现、失败、重启、回退 | DSH 迁移 owner |
+| P0-08 | DSH 可接入性 | 已完成（服务端 / bridge） | 已完成精确工具发现、真实 API list/get、故障分类、适配器重启、daemon 重启后再读；OpenWork UI 回退计入 P0-05 | DSH 迁移 owner |
 
 ### P0-01 证据明细（OpenWork + OpenDesign 固定版本）
 
-- **OpenWork `2aef14e2`**（`fix(unify): align unified main to buildable state`）——真实旧客户端（Electron / React）。
-- **OpenDesign `0c7955de`（v0.11.1）**——本地设计系统引擎（daemon + HTTP API）。生产制品 / 启动命令待填入 §9 待办。
-- **DeepSeek Harness `4e6e0a1`**（`fix(jiwo-pilot): align the pilot with Arkme record writes`）——DSH 底座；其自带 `examples/jiwo-pilot` 为 records 版，本试点不改 DSH 底座，只用其 overlay / plugin 机制注入 OpenDesign MCP。
+- **OpenWork `2aef14e2`**（`fix(unify): align unified main to buildable state`）——真实旧客户端（Electron / React），仓库：<https://github.com/OpenWorkai/openwork>。
+- **OpenDesign `0c7955de`（v0.11.1）**——本地设计系统引擎（daemon + HTTP API），仓库：<https://github.com/OpenWorkai/open-design>。源码启动：`OD_DATA_DIR=<controlled-dir> node apps/daemon/dist/cli.js --host 127.0.0.1 --port 7456 --no-open`。
+- **DeepSeek Harness `4e6e0a1`**（`fix(jiwo-pilot): align the pilot with Arkme record writes`）——DSH 底座；当前 PR 已把 `examples/jiwo-pilot` 的活动服务端、overlay、测试、采集器和客户端草案改为 OpenDesign 只读契约。
 - **旧"缺即我源码"硬阻塞解除**：真实旧路径即 OpenWork → OpenDesign，两者源码均在工作区（`/Users/myking/workspaces/claude-projects/openwork`、`/Users/myking/workspaces/claude-projects/open-design`），无需再猎取外部安装包或旧版 DMG。
 
 ### 真实调用链（源码可确认）
@@ -169,9 +169,9 @@ arkme-senx/arkme-dsh-plugin @8d62319 与 Arkme 0.1.1 桌面发布包静态验真
 - 两条路径读取同一事实源，不复制数据库（验证试点路径直接读 `OD_DATA_DIR`，而非镜像）。
 - 把 §7 所有 PENDING 替换为实测后冻结的数字。
 
-### 当前桩数据的正确定位
+### 当前 DSH 资产的正确定位
 
-`examples/jiwo-pilot/server` 当前仍是 Jiwo / Arkme **records** 桩（P0-08 待重做）。其自带基线采集器只能验证采集方法，不能作为 OpenDesign 真实基线；契约测试 8/8 通过仅证明 records 契约形状，不能外推到 OpenDesign design-systems 契约或 Phase 0 GO。
+`examples/jiwo-pilot/server` 已改为 loopback-only OpenDesign 只读适配器，不再包含活动的 Jiwo / Arkme records 桩。自动测试同时使用合成 OpenDesign HTTP fixture 和真实 `dsh-mcp-client`；受控采样另连接真实 OpenDesign 0.11.1 daemon。它们能证明 P0-08 的 DSH 接入能力，但不能替代 OpenWork renderer / IPC 旧路径基线，也不能把一次本机采样外推成 Phase 1 性能阈值。
 
 机器可读基线应保存到受控证据目录并记录来源，不应只引用 `/tmp` 文件，因为临时文件不可审计、不可共享。
 
@@ -196,28 +196,27 @@ arkme-senx/arkme-dsh-plugin @8d62319 与 Arkme 0.1.1 桌面发布包静态验真
 
 阈值必须由业务、运维和安全 owner 在看到旧路径基线后、实现真实适配器前签定；不得在试点结果出来后放宽。
 
-## 8. 现有 DSH / stub 资产可采信范围
+## 8. 现有 DSH 资产可采信范围
 
 | 资产 | 已证明 | 尚未证明 |
 |---|---|---|
-| [桩后端](server/jiwo-stub-server.mjs) | Jiwo / Arkme records 的 JSON-RPC / MCP 形状、合成读写、顺序幂等和文件持久化可演示 | 与 OpenDesign design-systems 契约不一致（P0-08 待重做）；真实 OpenDesign API、权限、并发、容量、审计 |
-| [契约测试](server/tests/jiwo.contract.test.mjs) | 8 个 records 契约测试覆盖工具清单、黄金读、基础错误、确认门、顺序去重、JSONL 写穿和 overlay 文本配置 | 不能外推到 OpenDesign design-systems 契约；真实 overlay 禁用演练、并发、超时不确定性、资源级授权 |
-| [基线采集器](server/baseline-harness.mjs) | 单进程 MCP 请求、基础延迟、合成错误、固定并发采集方法可运行 | OpenDesign 直连基线、峰值容量、CPU / 内存、生产网络、多客户端和真实依赖恢复 |
-| [client 脚手架](client/) | Host / client 双包方向已有草案 | 仍使用旧 `jiwo/tag_write` 事件草案，未接入宿主构建，类型 / UI 重放 / 权限展示 / 升级兼容均未验证；需重对齐为 design-systems 事件 |
+| [只读适配器](server/opendesign-readonly-server.mjs) | loopback-only 真实 OpenDesign API 转换；精确暴露 list/get；字段白名单；无业务存储、无写工具 | owner 尚未批准最终白名单；不证明 OpenWork 旧路径等价、资源 / 租户授权或生产容量 |
+| [契约与 bridge 测试](server/tests/opendesign.contract.test.mjs) | 14 项测试覆盖工具清单、字段过滤、七类上游故障、写拒绝、overlay 及真实 `dsh-mcp-client` 执行 | 不证明 OpenWork UI 回退时间、长时稳定性或最终权限 / 隐私政策 |
+| [基线采集器](server/baseline-harness.mjs) | 真实 OpenDesign 上的 list/get 成功率、基础延迟、并发、错误和适配器重启采样可运行 | OpenWork renderer / IPC、CPU / RSS、正式峰值容量和支持 Node 环境下的冻结阈值 |
+| [client 脚手架](client/) | 已重对齐 `opendesign/list` / `opendesign/get`，仅有回放缓存和只读 UI，无 write 事件；Host / browser 独立类型检查通过 | 尚未接入生产宿主构建；实际事件生产、UI 重放、权限展示与升级兼容仍未验证 |
+| [受控 P0-08 证据](evidence/opendesign-dsh-readonly-e2e.md) | 真实 OpenDesign 0.11.1 上 20/20 list、20/20 get、20/20 并发，适配器重启及 daemon 重启后再读成功 | 只是一轮本机 DSH 路径采样，不能作为 P0-05 对照基线或冻结阈值 |
 
-因此，"records 桩契约测试通过"不能改写为"Phase 0 通过"，也不能作为 OpenDesign design-systems 真实业务试点的安全批准。
+因此，P0-08 完成不能改写为“Phase 0 通过”。只有 P0-05 对照基线、P0-07 owner 审批与 §7 数值冻结完成后，才可评审只读 GO。
 
 ## 9. 最短收尾顺序
 
-1. 在 PHASE0 写入 OpenWork / OpenDesign 仓库、commit、启动命令、责任人（P0-01）。
-2. 固化真实调用链 + 两个候选只读 API（P0-02）。
-3. 固化数据模型字段、目录结构、删除 / 保留规则、黄金测试数据（P0-03）。
-4. 明确仅本机单用户 + loopback 权限边界，不宣称租户 / 资源级授权（P0-04）。
-5. 用真实 OpenWork + OpenDesign 跑只读基线（P0-05）。
-6. 用真实 OpenDesign API 替换 records stub，做 DSH 端到端发现 / 失败 / 重启 / 回退（P0-08）。
-7. 冻结 §7 全部 PENDING 为实测数字。
-8. 补齐隐私字段白名单 / 日志禁入字段 / 遮蔽规则（P0-07）。
-9. 评审 → 只读 GO 或 HOLD。
+1. 指定 OpenWork / OpenDesign / 数据 / 安全 / 运维 owner（P0-01）。
+2. 固化数据目录、删除 / 保留规则和黄金测试数据（P0-03）。
+3. 由身份 / 安全 owner 确认仅本机单用户 + loopback 权限边界（P0-04）。
+4. 用同一 `OD_DATA_DIR` 跑真实 OpenWork IPC 与 DSH 只读路径对照基线、UI 回退和资源采样（P0-05）。
+5. 补齐并批准隐私字段白名单、日志禁入字段和遮蔽规则（P0-07）。
+6. 按 P0-05 结果冻结 §7 全部 PENDING 数字。
+7. 评审 → 只读 GO 或继续 HOLD。
 
 ## 10. 决策记录
 
@@ -226,8 +225,8 @@ arkme-senx/arkme-dsh-plugin @8d62319 与 Arkme 0.1.1 桌面发布包静态验真
 | 决策 | HOLD |
 | 日期 | 2026-08-22 |
 | 放行范围 | 无；继续 Phase 0 证据收集，目标为范围明确的"只读 GO" |
-| 关键变化 | 证据对象从即我 / Jiwo / Arkme records 重对齐为 OpenWork → OpenDesign design-systems（只读）；旧"缺即我源码"硬阻塞解除（真实旧路径源码在工作区） |
-| 已接受证据 | A 级：OpenWork `2aef14e2` + OpenDesign `0c7955de` 源码与调用链；DSH `4e6e0a1` 底座；即我 / Arkme DSH 重构旁证（参考） |
-| 主要阻塞 | P0-05 真实只读基线未采；P0-08 DSH 端到端未用真实 OpenDesign API 验证；P0-07 隐私白名单未冻结；§7 性能 / 恢复阈值仍 PENDING |
-| 下一次评审触发 | 真实只读基线 + DSH 端到端验证完成 |
+| 关键变化 | P0-08 已从 records 桩重指向 OpenDesign 只读 API，并通过真实 DSH bridge、真实 daemon 采样与重启后再读验证；总体仍 HOLD |
+| 已接受证据 | A 级：OpenWork `2aef14e2` + OpenDesign `0c7955de` 源码与调用链；B 级：DSH 精确 list/get、真实 API、错误分类与恢复；即我 / Arkme 仅作方向参考 |
+| 主要阻塞 | P0-05 真实 OpenWork IPC 对照基线与 UI 回退未采；P0-07 隐私白名单未获 owner 批准；P0-03/04 owner 边界未签；§7 性能 / 恢复阈值仍 PENDING |
+| 下一次评审触发 | P0-05 对照基线 + P0-07 审批 + §7 数值冻结完成 |
 | 全面迁移 / 写入 | 未批准；写入另设第二道门 |

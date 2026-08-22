@@ -51,7 +51,7 @@
 | `arkme_record_images` | 读 | — | 纯图片库 |
 | `arkme_record_create` | 写（`effect:'write'`，`grant:'explicit-user-write'`） | `text`（必填） | 写入默认分类；先本地缓存再远端同步；返回 `localState: synced/failed` |
 
-**切片对齐关键发现**：真实“记录（record）”是**文本快记**（`record_core` 含 `record_uid`/`title`/`text_content`/`template_kind`/`display_kind`/`version`/`send_at`/`update_at`/`owner_user_id`/`creator_user_id`）。`src/tools/business/records/` **未见对外暴露的“标签写入”工具**。试点服务端桩、基线采集器及契约测试现已改用 `arkme_record_create`；未接入构建的 `client/` 事件草案仍需另行对齐。
+**切片对齐关键发现**：真实“记录（record）”是**文本快记**（`record_core` 含 `record_uid`/`title`/`text_content`/`template_kind`/`display_kind`/`version`/`send_at`/`update_at`/`owner_user_id`/`creator_user_id`）。`src/tools/business/records/` **未见对外暴露的“标签写入”工具**。该发现纠正了早期 records 桩，但当前 Phase 0 的证据对象已改为 OpenWork → OpenDesign design-systems；Arkme 记录工具仅作迁移方向旁证，不再驱动活动的 server / client 契约。
 
 ## 4. 真实写入确认模型（src/tools/shared/conversational-confirmation.ts）
 
