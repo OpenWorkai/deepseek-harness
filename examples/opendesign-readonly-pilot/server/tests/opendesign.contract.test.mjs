@@ -11,6 +11,12 @@ import { apply as applyMcpClient } from '@deepseek-ai/dsh-mcp-client'
 
 const ADAPTER = fileURLToPath(new URL('../opendesign-readonly-server.mjs', import.meta.url))
 const REPO_ROOT = fileURLToPath(new URL('../../../..', import.meta.url))
+const DSH_RUNTIME = fileURLToPath(
+  new URL('../../../../packages/examples/jsonrpc-demo/lib/bin.js', import.meta.url),
+)
+const DSH_RUNTIME_CONFIG = fileURLToPath(
+  new URL('../../opendesign-readonly-runtime.cordis.yml', import.meta.url),
+)
 
 const DESIGN_SYSTEM = {
   id: 'user:aurora',
@@ -168,6 +174,77 @@ function startAdapter(baseUrl, timeoutMs = 1_000) {
       return ready
     },
   }
+}
+
+function startDshRuntime(baseUrl) {
+  const proc = spawn(process.execPath, [DSH_RUNTIME, DSH_RUNTIME_CONFIG], {
+    cwd: REPO_ROOT,
+    env: {
+      ...process.env,
+      OPENDESIGN_BASE_URL: baseUrl,
+      OPENDESIGN_REQUEST_TIMEOUT_MS: '1000',
+    },
+    stdio: ['pipe', 'pipe', 'pipe'],
+  })
+  let buffer = ''
+  let nextId = 1
+  const pending = new Map()
+  const stderr = []
+
+  proc.stderr.on('data', chunk => stderr.push(chunk.toString()))
+  proc.stdout.on('data', (chunk) => {
+    buffer += chunk.toString()
+    let newline
+    while ((newline = buffer.indexOf('\n')) >= 0) {
+      const line = buffer.slice(0, newline).trim()
+      buffer = buffer.slice(newline + 1)
+      if (!line) continue
+      let message
+      try {
+        message = JSON.parse(line)
+      } catch {
+        for (const deferred of pending.values()) {
+          deferred.reject(new Error(`non-JSON DSH stdout: ${line}`))
+        }
+        pending.clear()
+        continue
+      }
+      const deferred = pending.get(message.id)
+      if (!deferred) continue
+      pending.delete(message.id)
+      if (message.error) deferred.reject(Object.assign(new Error(message.error.message), message.error))
+      else deferred.resolve(message.result)
+    }
+  })
+  proc.on('exit', (code, signal) => {
+    for (const deferred of pending.values()) {
+      deferred.reject(new Error(
+        `DSH runtime exited before replying (code=${String(code)}, signal=${String(signal)}): ${stderr.join('')}`,
+      ))
+    }
+    pending.clear()
+  })
+
+  const call = (method, params = {}) => {
+    const id = nextId++
+    return new Promise((resolve, reject) => {
+      pending.set(id, { resolve, reject })
+      proc.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', id, method, params })}\n`)
+    })
+  }
+  const stop = async () => {
+    if (proc.exitCode !== null) return
+    proc.stdin.end()
+    await new Promise((resolve) => {
+      const forceKill = setTimeout(() => proc.kill('SIGKILL'), 2_000)
+      proc.once('exit', () => {
+        clearTimeout(forceKill)
+        resolve()
+      })
+    })
+  }
+  stopped.push(stop)
+  return { call, stderr: () => stderr.join('') }
 }
 
 async function boot(timeoutMs) {
@@ -385,4 +462,47 @@ test('real dsh-mcp-client discovers and executes only the OpenDesign read tools'
   } finally {
     await ctx.fiber.dispose()
   }
+})
+
+test('real DSH runtime exposes and executes only the approved OpenDesign reads', async () => {
+  const baseUrl = await startUpstream()
+  const runtime = startDshRuntime(baseUrl)
+
+  const initialized = await runtime.call('initialize', {
+    protocolVersion: 'opendesign-readonly/1',
+    clientInfo: { name: 'openwork-contract-test', version: '0' },
+  })
+  expect(initialized).toEqual({
+    protocolVersion: 'opendesign-readonly/1',
+    serverInfo: { name: 'dsh-opendesign-readonly-pilot', version: '1' },
+  })
+
+  const catalog = await runtime.call('tools/list')
+  expect(catalog.tools.map(tool => tool.name).sort()).toEqual([
+    'opendesign_get_design_system',
+    'opendesign_list_design_systems',
+  ])
+
+  const list = await runtime.call('tools/call', {
+    name: 'opendesign_list_design_systems',
+    arguments: {},
+  })
+  expect(list.structuredContent.designSystems).toHaveLength(1)
+  expect(JSON.stringify(list)).toContain('Aurora')
+  expect(JSON.stringify(list)).not.toContain('Private design guidance')
+  expect(JSON.stringify(list)).not.toContain('private-project-id')
+
+  const detail = await runtime.call('tools/call', {
+    name: 'opendesign_get_design_system',
+    arguments: { id: DESIGN_SYSTEM.id },
+  })
+  expect(detail.structuredContent.designSystem.body).toBe(DESIGN_SYSTEM.body)
+  expect(JSON.stringify(detail)).not.toContain('private-project-id')
+
+  await expect(runtime.call('tools/call', {
+    name: 'opendesign_create_design_system',
+    arguments: { title: 'must not be created' },
+  })).rejects.toMatchObject({ code: -32601 })
+  expect(runtime.stderr()).not.toContain('Private design guidance')
+  expect(runtime.stderr()).not.toContain('private-project-id')
 })

@@ -1,0 +1,34 @@
+# Isolated non-production runtime for OpenWork's OpenDesign read-only pilot.
+# stdout is reserved for the pilot JSON-RPC protocol implemented by the local
+# gateway plugin. Do not add a console logger, model adapter, agent, or Web host.
+
+- id: system-prompt
+  name: ../../packages/core/system-prompt/lib/index.js
+
+- id: tools
+  name: ../../packages/core/tools/lib/index.js
+
+- id: opendesign-readonly-mcp
+  name: ../../packages/mcp/mcp-client/lib/index.js
+  config:
+    serverName: opendesign
+    transport: stdio
+    command: !!js process.execPath
+    args: ['examples/opendesign-readonly-pilot/server/opendesign-readonly-server.mjs']
+    cwd: !!js process.cwd()
+    env:
+      OPENDESIGN_BASE_URL: !!js process.env.OPENDESIGN_BASE_URL?.trim() || 'http://127.0.0.1:7456'
+      OPENDESIGN_REQUEST_TIMEOUT_MS: !!js process.env.OPENDESIGN_REQUEST_TIMEOUT_MS?.trim() || '10000'
+    failOnStartupError: true
+    toolCallTimeoutMs: 30000
+    # The signed Phase 1 recovery bound is adapter first-read <=250ms. Keep
+    # automatic recovery fail-closed and bounded, but leave enough of that
+    # budget for process spawn, MCP initialization, and tool re-synchronization.
+    reconnect:
+      enabled: true
+      initialDelayMs: 25
+      maxDelayMs: 30000
+      maxAttempts: 10
+
+- id: opendesign-readonly-gateway
+  name: ./server/opendesign-readonly-gateway.mjs

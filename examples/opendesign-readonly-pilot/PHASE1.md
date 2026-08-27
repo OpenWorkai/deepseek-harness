@@ -37,10 +37,12 @@ Phase 1 不重新解释或放宽 Phase 0。以下文件是实施与验收的唯�
 
 ### P1-01：确定真实 DSH 调用路径
 
-- [ ] 使用 DSH 支持的插件组合或 SDK/协议，使 OpenWork 调用经过 DSH 工具设施后再到 OpenDesign；直接从 OpenWork 启动 MCP adapter 不能作为“经 DSH 接入”的完成证据。
-- [ ] 固定 DSH 可执行入口、overlay、依赖锁文件和 adapter 文件摘要；配置必须启用启动失败即报错，且只接受 loopback OpenDesign URL。
-- [ ] 启动后读取工具目录并断言恰好存在两个批准的只读工具；缺少工具、出现写工具或版本不匹配时拒绝启用试点路径。
-- [ ] 将 DSH 生命周期绑定到 OpenWork 主进程，覆盖启动、取消、退出和孤儿进程清理；renderer 不持有进程句柄。
+- [x] 使用 DSH 支持的插件组合或 SDK/协议，使 OpenWork 调用经过 DSH 工具设施后再到 OpenDesign；直接从 OpenWork 启动 MCP adapter 不能作为“经 DSH 接入”的完成证据。
+- [x] 固定 DSH 可执行入口、overlay、依赖锁文件和 adapter 文件摘要；配置必须启用启动失败即报错，且只接受 loopback OpenDesign URL。
+- [x] 启动后读取工具目录并断言恰好存在两个批准的只读工具；缺少工具、出现写工具或版本不匹配时拒绝启用试点路径。
+- [x] 将 DSH 生命周期绑定到 OpenWork 主进程，覆盖启动、取消、退出和孤儿进程清理；renderer 不持有进程句柄。
+
+受控证据：[`P1-01 真实 DSH 调用路径`](evidence/opendesign-p1-01-runtime-path.md)。实现只提供 main-process owner；试点激活与原生路径选择仍属于 P1-02，不代表 UI 或生产接线。
 
 ### P1-02：OpenWork 主进程只读服务
 
