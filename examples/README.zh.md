@@ -27,3 +27,7 @@
 ## acp-agent
 
 面向程序化客户端的 ACP（Agent Client Protocol）自动化服务器，支持会话、权限和取消操作。详见 [ACP 示例参考](acp-agent/README.zh.md)。
+
+## dsh-im-readonly-canary
+
+面向一个私有白名单非生产 Telegram 机器人的真实 DSH Host Connection RPC 只读状态证明。它从不接收 token，也不会发送消息。详见 [dsh-im 只读金丝雀参考](dsh-im-readonly-canary/README.zh.md)。
