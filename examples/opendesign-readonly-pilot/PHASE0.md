@@ -6,7 +6,7 @@
 >
 > 候选切片改为**只读**两个工具：`opendesign_list_design_systems` / `opendesign_get_design_system`；写入（`opendesign_create_design_system`）另设第二道门，不在本次 GO 范围。
 >
-> 固定版本：OpenWork `9e774879`、OpenDesign `0c7955de`（v0.11.1）、DeepSeek Harness `89b38861`；P0-05 / P0-08 实现位于当前 PR。
+> 固定版本：OpenWork `9e774879`、OpenDesign `0c7955de`（v0.11.1）、DeepSeek Harness `e920aed`（取代冻结的 `89b38861`，新增只读 gateway `8a0508d` + IM loopback 金丝雀）；P0-05 / P0-08 实现位于当前 PR。
 >
 > 证据截止：2026-08-22。
 >
@@ -91,7 +91,7 @@ GO 只批准只读切片，OpenDesign 继续作为唯一事实源，OpenWork 原
 
 - **OpenWork `9e774879`**——真实旧客户端（Electron / React）；该固定版本保留 OpenDesign 完整只读字段、显式 `NOT_FOUND`，并支持受控 P0-05 数据目录 / 运行时输入。仓库：<https://github.com/OpenWorkai/openwork>。
 - **OpenDesign `0c7955de`（v0.11.1）**——本地设计系统引擎（daemon + HTTP API），仓库：<https://github.com/OpenWorkai/open-design>。源码启动：`OD_DATA_DIR=<controlled-dir> node apps/daemon/dist/cli.js --host 127.0.0.1 --port 7456 --no-open`。
-- **DeepSeek Harness `89b38861`**——当前只读试点与 P0-05 采集器；底座历史 commit `4e6e0a1` 仅用于追溯。
+- **DeepSeek Harness `e920aed`**——当前只读试点与 P0-05 采集器（取代冻结的 `89b38861`；在 `89b38861` 基础上叠加只读 gateway `8a0508d` + IM loopback 金丝雀）；底座历史 commit `4e6e0a1` 仅用于追溯。机器可读采集快照 `evidence/p0-05-dsh.json` 仍记录 `89b38861`，待 P0-08 在 `e920aed` 复采后刷新。
 - **旧"缺即我源码"硬阻塞解除**：真实旧路径即 OpenWork → OpenDesign，两者源码均在工作区（`/Users/myking/workspaces/claude-projects/openwork`、`/Users/myking/workspaces/claude-projects/open-design`），无需再猎取外部安装包或旧版 DMG。
 
 ### 真实调用链（源码可确认）
@@ -230,7 +230,7 @@ P0-05 / P0-08 只证明技术条件；owner 边界确认、P0-07 审批与 §7 �
 | 日期 | 2026-08-22 |
 | 放行范围 | `opendesign_list_design_systems` / `opendesign_get_design_system`；OpenDesign 继续唯一事实源，OpenWork 原生 IPC 保持可用；写工具、远程访问、多租户、资源级共享及生产 Host/web 接线不在范围 |
 | 关键变化 | P0-05 与 P0-08 均通过；P0-03/04 owner 边界、P0-07 隐私审批（方案 1）与 §7 候选阈值经 [`只读 GO 决策单`](evidence/opendesign-readonly-go-decision.md) 合并签署冻结；Phase 0 解除 HOLD |
-| 已接受证据 | A 级：OpenWork `9e774879` + OpenDesign `0c7955de` 真实 renderer / IPC；B 级：DSH `89b38861` 精确 list/get、真实 API、错误分类与恢复；即我 / Arkme 仅作方向参考 |
+| 已接受证据 | A 级：OpenWork `9e774879` + OpenDesign `0c7955de` 真实 renderer / IPC；B 级：DSH `e920aed`（取代 `89b38861`；机器可读采集快照待 P0-08 在 `e920aed` 复采后刷新）精确 list/get、真实 API、错误分类与恢复；即我 / Arkme 仅作方向参考 |
 | 主要阻塞 | 无（owner 决议已全部签署）；写入门 P0-06 仍待 Phase 1 第二道门 |
 | 下一次评审触发 | Phase 1 写入门（P0-06）引入前需重新评审；固定版本升级演练时回归契约 / UI / 持久化 |
 | 全面迁移 / 写入 | 未批准；写入另设第二道门 |

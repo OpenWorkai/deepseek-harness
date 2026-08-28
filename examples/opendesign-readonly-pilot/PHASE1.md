@@ -14,7 +14,7 @@ Phase 1 不重新解释或放宽 Phase 0。以下文件是实施与验收的唯�
 - [`只读 GO 决策单`](evidence/opendesign-readonly-go-decision.md)：批准范围、事实源、回退路径和 owner 决议。
 - [`P0-05 同源对照`](evidence/opendesign-p0-05-comparison.md) 与 [`P0-08 DSH 端到端证据`](evidence/opendesign-dsh-readonly-e2e.md)：真实基线和已验证的设施能力。
 
-固定证据版本为 OpenWork `9e774879`、OpenDesign `0c7955de`（v0.11.1）和 DeepSeek Harness `89b38861`。任一固定输入发生实质变化时，先重跑 P0-05/P0-08 并重新冻结受影响阈值。
+固定证据版本为 OpenWork `9e774879`、OpenDesign `0c7955de`（v0.11.1）和 DeepSeek Harness `e920aed`（取代冻结的 `89b38861`，新增只读 gateway `8a0508d` + IM loopback 金丝雀）。DSH 固定版本已实质变化：按本规则将 P0-08 在 `e920aed` 复验并重新冻结受影响阈值；OpenDesign 版本未变，P0-05 原生基线免重做。
 
 ## 2. 不可变实现范围
 
