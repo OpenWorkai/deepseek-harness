@@ -16,6 +16,9 @@ packages:
   # globs (vendor/*, packages/*/*) exclude them. See examples/AGENTS.md and the archived
   # run-ci-examples-from-built-lib Agent Note.
   - examples
+  # P0-08 OpenDesign pilot scaffold: dependency resolution and independent
+  # type-checking only. The production client/host compositions do not load it.
+  - examples/opendesign-readonly-pilot/client
   # Deploy root of the single-exe build: a pure dependency manifest whose
   # closure is what the exe bundles and what the Python runtime distributes.
   - python/sdk-runtime

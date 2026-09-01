@@ -1,0 +1,23 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "disableSourceOfProjectReferenceRedirect": true,
+    "paths": {},
+    "rootDir": "src",
+    "outDir": "lib/types",
+    "tsBuildInfoFile": "lib/tsconfig.host.tsbuildinfo"
+  },
+  "files": [
+    "src/cache/opendesign-cache.ts",
+    "src/events.ts",
+    "src/index.ts"
+  ],
+  "references": [
+    { "path": "../../../vendor/cordis" },
+    { "path": "../../../vendor/schemastery" },
+    { "path": "../../../packages/util/brand" },
+    { "path": "../../../packages/core/session" },
+    { "path": "../../../packages/settings/settings" },
+    { "path": "../../../packages/storage/storage-domain" }
+  ]
+}

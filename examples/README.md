@@ -27,3 +27,7 @@ An opt-in Web overlay for durable, Session-local reminders. It supports positive
 ## acp-agent
 
 An Agent Client Protocol automation server for programmatic clients, with session, permission, and cancellation support. See the [ACP example reference](acp-agent/README.md).
+
+## dsh-im-readonly-canary
+
+A status-only proof of the real DSH Host Connection RPC path for one private-allowlisted, non-production Telegram bot. It never accepts a token or sends a message. See the [dsh-im read-only canary reference](dsh-im-readonly-canary/README.md).

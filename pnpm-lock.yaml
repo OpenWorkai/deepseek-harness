@@ -749,6 +749,49 @@ importers:
         specifier: workspace:*
         version: link:../packages/workflow/workflow-worker-thread
 
+  examples/opendesign-readonly-pilot/client:
+    dependencies:
+      '@deepseek-ai/schemastery':
+        specifier: link:../../../vendor/schemastery
+        version: link:../../../vendor/schemastery
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
+      '@deepseek-ai/dsh-brand':
+        specifier: workspace:^
+        version: link:../../../packages/util/brand
+      '@deepseek-ai/dsh-client-runtime':
+        specifier: workspace:^
+        version: link:../../../packages/client/runtime
+      '@deepseek-ai/dsh-client-ui-conversation':
+        specifier: workspace:^
+        version: link:../../../packages/client/ui-conversation
+      '@deepseek-ai/dsh-client-ui-settings-plugins':
+        specifier: workspace:^
+        version: link:../../../packages/client/ui-settings-plugins
+      '@deepseek-ai/dsh-client-ui-slots':
+        specifier: workspace:^
+        version: link:../../../packages/client/ui-slots
+      '@deepseek-ai/dsh-session':
+        specifier: workspace:^
+        version: link:../../../packages/core/session
+      '@deepseek-ai/dsh-settings':
+        specifier: workspace:^
+        version: link:../../../packages/settings/settings
+      '@deepseek-ai/dsh-storage-domain':
+        specifier: workspace:^
+        version: link:../../../packages/storage/storage-domain
+      '@types/react':
+        specifier: ~18.3.1
+        version: 18.3.31
+      react:
+        specifier: ^18.2.0
+        version: 18.3.1
+
   native/landlock-run:
     devDependencies:
       '@deepseek-ai/node-addon-landlock-run':

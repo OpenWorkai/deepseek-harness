@@ -1,0 +1,23 @@
+{
+  "extends": "../../../tsconfig.base.client.json",
+  "compilerOptions": {
+    "disableSourceOfProjectReferenceRedirect": true,
+    "paths": {},
+    "rootDir": "src",
+    "outDir": "lib/types",
+    "tsBuildInfoFile": "lib/tsconfig.client.tsbuildinfo"
+  },
+  "files": [
+    "src/client/index.ts",
+    "src/events.ts"
+  ],
+  "references": [
+    { "path": "../../../vendor/cordis" },
+    { "path": "../../../packages/util/brand" },
+    { "path": "../../../packages/core/session" },
+    { "path": "../../../packages/client/runtime" },
+    { "path": "../../../packages/client/ui-conversation" },
+    { "path": "../../../packages/client/ui-settings-plugins" },
+    { "path": "../../../packages/client/ui-slots" }
+  ]
+}

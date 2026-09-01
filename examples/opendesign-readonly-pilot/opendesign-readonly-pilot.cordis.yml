@@ -1,0 +1,30 @@
+# OpenWork → OpenDesign read-only pilot overlay (Phase 0 / P0-08).
+#
+# Connects DSH to the real local OpenDesign HTTP API through a dependency-free
+# stdio MCP adapter. OpenDesign remains the sole fact source; the adapter has no
+# local business store and exposes only list/get read tools.
+#
+# Enable from the repo root:
+#   dsh web --patch "$PWD/examples/opendesign-readonly-pilot/opendesign-readonly-pilot.cordis.yml"
+#
+# failOnStartupError: true is required by the approved plan: we must NEVER get a
+# silent "started but no tools" success. If the adapter fails to start or its
+# tools cannot be synchronized, plugin activation is rejected loudly.
+#
+# Rollback: remove this overlay from the launch command. OpenWork's native IPC
+# path keeps reading the same OpenDesign daemon and OD_DATA_DIR.
+- insert:
+    - id: opendesign-readonly-pilot
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: opendesign
+        transport: stdio
+        command: node
+        args: ['examples/opendesign-readonly-pilot/server/opendesign-readonly-server.mjs']
+        cwd: !!js process.cwd()
+        env:
+          # The adapter intentionally accepts loopback HTTP only.
+          OPENDESIGN_BASE_URL: !!js process.env.OPENDESIGN_BASE_URL?.trim() || 'http://127.0.0.1:7456'
+          OPENDESIGN_REQUEST_TIMEOUT_MS: !!js process.env.OPENDESIGN_REQUEST_TIMEOUT_MS?.trim() || '10000'
+        failOnStartupError: true
+        toolCallTimeoutMs: 30000
